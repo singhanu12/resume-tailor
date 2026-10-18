@@ -11,49 +11,59 @@ nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--c);bord
 nav a{flex:1;text-align:center;padding:13px 0;font:12px system-ui,sans-serif;color:var(--m)}nav a.on{color:var(--n);font-weight:700;box-shadow:inset 0 3px var(--n)}
 .tab{display:none}.tab.on{display:block}li{margin:4px 0}.s{font:12px system-ui,sans-serif;color:var(--m)}pre{white-space:pre-wrap;font:14px Georgia,serif;margin:4px 0}
 .big{font-size:34px;color:var(--n)}.ok{color:var(--ok)}.bad{color:var(--bad)}#toast{position:fixed;left:12px;right:12px;bottom:80px;background:#222;color:#fff;padding:10px;border-radius:6px;display:none;font:14px system-ui}
-</style></head><body><main>
+#sb{position:sticky;top:0;z-index:5;display:none;align-items:center;gap:8px;padding:10px 12px;margin:-12px -12px 12px;font:14px system-ui,sans-serif;color:#fff;background:#444}#sb.work{background:var(--n);color:var(--bg)}#sb.ok{background:var(--ok)}#sb.err{background:var(--bad)}#sb.warn{background:#9a6b00}
+.sp{width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:sp .8s linear infinite;flex:none}@keyframes sp{to{transform:rotate(360deg)}}
+.rv{font:12px/1.35 'EB Garamond',Garamond,Georgia,serif;overflow-x:auto}.rv table{width:100%;border-collapse:collapse;margin:0}.rv td{border:.5px solid #808080;padding:1px 4px;vertical-align:middle}.rv td.l{width:14%;text-align:center;font-weight:700}.rv tr.t td{background:#f2f2f2;color:#111}.rv tr.t span{float:right;margin-left:12px;font-weight:700}.rv .rh{display:flex;justify-content:space-between}.rv .nm{font-size:18px;font-variant:small-caps}.rv .rs{display:flex;justify-content:space-between;font-weight:700;font-variant:small-caps;border-bottom:3px solid #1f2a5c;margin-top:6px}
+</style></head><body><main><div id="sb"></div>
 <section id="t-tailor" class="tab on">
-<div class="card"><h2>Job</h2><label>Company</label><input id="co"><label>Job link</label><input id="lk" type="url"><label>Contact name</label><input id="ct">
+<div class="card"><h2>Job</h2><label>Company</label><input id="co"><label>Role</label><input id="rl"><label>Job link</label><input id="lk" type="url"><label>Contact name</label><input id="ct">
 <label>Job description</label><textarea id="jd"></textarea><label>Or add screenshots</label><input id="jdimg" type="file" accept="image/*" multiple>
-<button id="bfit">Check fit</button><button id="bfc" class="g">Check fit in Claude</button><button id="btl">Tailor</button><button id="bcl" class="g">Use Claude instead</button><div class="s" id="usage"></div></div>
-<div class="card" id="pastebox" style="display:none"><label>Paste Claude's JSON reply</label><textarea id="paste"></textarea><button id="bapply">Apply reply</button><textarea id="pcopy" readonly style="display:none;min-height:80px"></textarea></div>
+<button id="bfit" data-msg="Checking fit…" data-ok="Fit check done">Check fit</button><button id="bfc" class="g" data-msg="Copying…">Check fit in Claude</button><button id="btl" data-msg="Tailoring…" data-ok="Tailored and saved as a version">Tailor</button><button id="bcl" class="g" data-msg="Preparing prompt…">Use Claude instead</button><button id="bjd" class="g" data-msg="Copying…">Copy JD-extraction prompt</button><div class="s" id="usage"></div></div>
+<div class="card" id="pastebox" style="display:none"><label>Paste Claude's JSON reply</label><textarea id="paste"></textarea><button id="bapply" data-msg="Applying reply…" data-ok="Reply applied">Apply reply</button><textarea id="pcopy" readonly style="display:none;min-height:80px"></textarea></div>
 <div id="out"></div></section>
-<section id="t-resume" class="tab"><div class="card"><h2>Import resume</h2><input id="rf" type="file" accept=".pdf,.docx,image/*"><label>…or paste text</label><textarea id="rt"></textarea><button id="bimp">Import with Gemini</button><button id="bic" class="g">Use Claude instead</button><div class="s" id="rinfo"></div><label>Paste Claude's JSON reply</label><textarea id="ipaste" style="min-height:70px"></textarea><button id="bia" class="g">Apply reply</button></div>
+<section id="t-resume" class="tab"><div class="card"><h2>Import resume</h2><input id="rf" type="file" accept=".pdf,.docx,image/*"><label>…or paste text</label><textarea id="rt"></textarea><button id="bimp" data-msg="Reading resume…" data-ok="Resume imported. Check the Master preview below.">Import with Gemini</button><button id="bic" class="g" data-msg="Copying…">Use Claude instead</button><div class="s" id="rinfo"></div><label>Paste Claude's JSON reply</label><textarea id="ipaste" style="min-height:70px"></textarea><button id="bia" class="g" data-msg="Applying reply…" data-ok="Reply applied">Apply reply</button></div>
+<div class="card"><h2>Master preview</h2><div id="pvm"></div><button id="pmp" data-msg="Building PDF…" data-ok="PDF ready">PDF</button><button id="pmd" data-msg="Building DOCX…" data-ok="DOCX ready">DOCX</button></div>
+<div class="card"><h2>Original preview</h2><div id="pvo"></div><button id="pop" data-msg="Building PDF…" data-ok="PDF ready">PDF</button><button id="pod" data-msg="Building DOCX…" data-ok="DOCX ready">DOCX</button></div>
 <div class="card"><h2>Edit resume</h2><select id="vs"></select><button id="bsv" class="g">Save copy as version</button><button id="bvo" class="g">Open in Tailor</button><button id="bvd" class="g">Delete version</button><div id="ef"></div><details><summary class="s">Advanced: JSON</summary><textarea id="mj" style="min-height:260px;font:12px monospace"></textarea><button id="bsm">Apply JSON</button></details><button id="bro" class="g">Reset Master to Original</button></div></section>
-<section id="t-wins" class="tab"><div class="card"><h2>Log a win</h2><label>What you did</label><textarea id="wt"></textarea><label>Year</label><input id="wy" inputmode="numeric"><button id="bw">Suggest resume line</button><button id="bu" class="g">Undo last add</button></div><div id="wl"></div></section>
+<section id="t-wins" class="tab"><div class="card"><h2>Log a win</h2><label>What you did</label><textarea id="wt"></textarea><label>Year</label><input id="wy" inputmode="numeric"><button id="bw" data-msg="Reading your win…" data-ok="Suggestion ready">Suggest resume line</button><button id="bu" class="g">Undo last add</button></div><div id="wl"></div></section>
 <section id="t-apps" class="tab"><div class="card"><h2>Applications</h2><button id="ba">Add application</button><button id="bcsv" class="g">Export CSV</button></div><div id="al"></div></section>
-<section id="t-set" class="tab"><div class="card"><h2>Settings</h2><label>Gemini API key (free, from aistudio.google.com)</label><input id="key" type="password" autocomplete="off">
-<label>Max tighten spacing (pt, 0 = off)</label><input id="tg" inputmode="decimal"><label>Max stretch spacing (pt, 0 = off)</label><input id="st" inputmode="decimal">
-<button id="bset">Save settings</button></div><div class="card"><h2>Backup</h2><button id="bex">Export JSON</button><button id="bim" class="g">Import JSON</button><input id="bf" type="file" accept=".json" style="display:none"><div class="s">The API key is never included in backups.</div></div></section>
+<section id="t-set" class="tab"><div class="card"><h2>Your details</h2><label>Your name (used in file names)</label><input id="s-name"><label>Phone</label><input id="s-phone"><label>Email</label><input id="s-email"><label>LinkedIn</label><input id="s-linkedin" placeholder="linkedin.com/in/…"><label>File name style</label><select id="fs"><option value="under">Underscores: Name_Resume_Company</option><option value="space">Spaces: Name Resume Company</option></select>
+<h2 style="margin-top:14px">Gemini</h2><label>API key (free, from aistudio.google.com)</label><div class="s" id="keyst"></div><input id="key" type="password" autocomplete="off" placeholder="Paste a new key to replace the saved one">
+<label>Max tighten spacing (pt, 0 = off)</label><input id="tg" inputmode="decimal"><label>Max stretch spacing (pt, 0 = off)</label><input id="st" inputmode="decimal"><button id="bset" data-msg="Saving…" data-ok="Settings saved">Save settings</button><button id="btk" class="g" data-msg="Testing key…">Test key</button></div>
+<div class="card"><h2>Backup</h2><button id="bex">Export JSON</button><button id="bim" class="g">Import JSON</button><input id="bf" type="file" accept=".json" style="display:none"><div class="s">The API key is never included in backups.</div></div></section>
 </main><nav><a data-t="tailor" class="on">Tailor</a><a data-t="resume">Resume</a><a data-t="wins">Wins</a><a data-t="apps">Apps</a><a data-t="set">Settings</a></nav><div id="toast"></div>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const dbp=new Promise((res,rej)=>{const r=indexedDB.open('rt',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 const kv=async(m,k,v)=>{const d=await dbp;return new Promise((res,rej)=>{const o=d.transaction('kv',m==='get'?'readonly':'readwrite').objectStore('kv'),q=m==='get'?o.get(k):o.put(v,k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})};
-let S={orig:null,master:null,wins:[],apps:[],usage:{d:'',n:0},cfg:{key:'',tight:.3,stretch:1.3,cpl:118},undo:[],last:null,versions:[],lastId:null,models:null};
+let S={orig:null,master:null,wins:[],apps:[],usage:{d:'',n:0},cfg:{key:'',tight:.3,stretch:1.3,cpl:118,name:'',phone:'',email:'',linkedin:'',fileStyle:'under'},undo:[],last:null,versions:[],lastId:null,models:null};
 const save=()=>kv('put','state',S);let tt;
-const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',3500)};
-const busy=async(b,f)=>{b.disabled=true;try{await f()}catch(e){toast(e.message||String(e));console.error(e)}b.disabled=false};
+let TO;const status=(m,k='')=>{const e=$('#sb');clearTimeout(TO);e.className=k;e.innerHTML=(k==='work'?'<span class="sp"></span>':'')+esc(m);e.style.display=m?'flex':'none';if(k==='ok')TO=setTimeout(()=>e.style.display='none',7000)},toast=m=>status(m,'ok');
+addEventListener('unhandledrejection',e=>status('Unexpected error: '+(e.reason?.message||e.reason),'err'));
+let LOCK=0;const busy=async(b,f)=>{if(LOCK)return;LOCK=1;b.disabled=true;status(b.dataset.msg||'Working…','work');try{const r=await f();r&&typeof r==='object'?status(r.m,r.k):status(typeof r==='string'?r:(b.dataset.ok||'Done'),'ok')}catch(e){status(e.message||String(e),'err');console.error(e)}LOCK=0;b.disabled=false};
 /* ---------- Gemini ---------- */
 const parseJSON=t=>JSON.parse(t.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim());
-async function pickModels(){
- if(S.models&&Date.now()-S.models.t<864e5)return S.models;
- const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key='+S.cfg.key),j=await r.json();
- if(!r.ok)throw new Error(j.error?.message||'Model list failed');
- const ok=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace('models/','')),
+const KEYH=()=>({'x-goog-api-key':S.cfg.key});
+async function http(url,opt={},ms=90000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);let r;try{r=await fetch(url,{...opt,signal:c.signal})}catch(e){clearTimeout(t);throw new Error(e.name==='AbortError'?`Timed out after ${ms/1000}s waiting for Gemini`:'Network error: '+(e.message||e))}clearTimeout(t);
+ const tx=await r.text();let j=null;try{j=JSON.parse(tx)}catch(e){}
+ if(!r.ok){const e=new Error(`HTTP ${r.status}${j?.error?.status?' '+j.error.status:''}: ${j?.error?.message||tx.slice(0,300)||r.statusText}`);e.status=r.status;throw e}return j}
+async function pickModels(force){
+ if(!S.cfg.key)throw new Error('Add your Gemini key in Settings');if(!force&&S.models&&Date.now()-S.models.t<864e5)return S.models;
+ const j=await http('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200',{headers:KEYH()},30000),
+ ok=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace('models/','')),
  ver=n=>parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/)||[0,0])[1]),bad=/image|tts|live|audio|exp|thinking|robotics|computer|custom/,
  rank=a=>a.sort((x,y)=>ver(y)-ver(x)||(/preview/.test(x)?1:0)-(/preview/.test(y)?1:0)||x.length-y.length),
- fl=ok.filter(n=>/flash/.test(n)&&!bad.test(n)),best=rank(fl.filter(n=>!/lite/.test(n)))[0],lite=rank(fl.filter(n=>/lite/.test(n)))[0];
- if(!best&&!lite)throw new Error('No Flash model available for this key');
+ fl=ok.filter(n=>/gemini/.test(n)&&/flash/.test(n)&&!bad.test(n)),best=rank(fl.filter(n=>!/lite/.test(n)))[0],lite=rank(fl.filter(n=>/lite/.test(n)))[0];
+ if(!best&&!lite)throw new Error('No Gemini Flash model is available for this key');
  S.models={t:Date.now(),best:best||lite,lite:lite||best};save();return S.models}
 async function gem(parts,json=true){
- if(!S.cfg.key)throw new Error('Add your Gemini key in Settings');
- const m=await pickModels();let name=m.best;
- for(let i=0;i<2;i++){
-  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${name}:generateContent?key=${S.cfg.key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts}],generationConfig:{temperature:.3,...(json?{responseMimeType:'application/json'}:{})}})}),j=await r.json();
-  if(r.status===429&&i===0&&m.lite!==name){name=m.lite;toast('Rate limited, switching to '+name);continue}
-  if(!r.ok)throw new Error(j.error?.message||('Gemini error '+r.status));
-  const t=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');return json?parseJSON(t):t}}
+ const m=await pickModels(),tryM=[m.best];if(m.lite&&m.lite!==m.best)tryM.push(m.lite);let err;
+ for(const name of tryM){try{status('Asking '+name+'…','work');
+   const j=await http(`https://generativelanguage.googleapis.com/v1beta/models/${name}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json',...KEYH()},body:JSON.stringify({contents:[{parts}],generationConfig:{temperature:.3,...(json?{responseMimeType:'application/json'}:{})}})}),
+   t=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
+   if(!t.trim())throw new Error('Gemini returned no text ('+(j.promptFeedback?.blockReason||j.candidates?.[0]?.finishReason||'empty reply')+')');
+   if(!json)return t;try{return parseJSON(t)}catch(e){throw new Error('Gemini reply was not valid JSON ('+e.message+'). Try again.')}}
+  catch(e){err=e;if(![429,404,503].includes(e.status)||name===tryM[tryM.length-1])throw e;S.models=null}}throw err}
 const b64=f=>new Promise(r=>{const x=new FileReader();x.onload=()=>r(x.result.split(',')[1]);x.readAsDataURL(f)});
 async function docxText(f){
  const u=new Uint8Array(await f.arrayBuffer()),dv=new DataView(u.buffer);let i=0;
@@ -65,13 +75,19 @@ async function docxText(f){
 const filePart=async f=>/\.docx$/i.test(f.name)?{text:'RESUME TEXT:\n'+await docxText(f)}:{inlineData:{mimeType:f.type||'application/pdf',data:await b64(f)}};
 /* ---------- prompts ---------- */
 const SCHEMA=`{"name":"","sub":"gender/DOB line exactly as written","phone":"","email":"","sections":[{"title":"","note":"optional e.g. (52 MONTHS)","type":"entries|scholastic|skills|awards","entries":[{"dept":"","role":"","dates":"","style":"cells only for a 3-bordered-cell department row, else omit","sub":"optional full-width bold sub-row e.g. Project Title: ...","groups":[{"label":"Roles & Responsibilities","bullets":["text with **bold** words kept"]}]}],"cols":["Year","Degree","Institute","CGPA/%","Remarks"],"rows":"scholastic: [[cell,...]]; skills: [{\\"label\\":\\"\\",\\"text\\":\\"\\"}]; awards: [{\\"label\\":\\"Academic\\",\\"items\\":[{\\"texts\\":[\\"one or more side-by-side cells, with **bold**\\"],\\"year\\":\\"2020\\"}]}]"}]} (use only the keys relevant to each section type)`;
+function checkResume(R,what='Resume'){const bad=m=>{throw new Error(what+' data problem: '+m)},T=v=>v==null?'':String(v);if(!R||typeof R!=='object')bad('not an object');if(!Array.isArray(R.sections)||!R.sections.length)bad('no sections');['name','sub','phone','email'].forEach(k=>R[k]=T(R[k]));
+ R.sections.forEach((s,i)=>{if(!s||typeof s!=='object')bad('section '+(i+1)+' is invalid');s.title=T(s.title);if(s.note!=null)s.note=T(s.note);s.type=s.type||(s.cols?'scholastic':'entries');
+  if(s.type==='scholastic'){s.rows=(Array.isArray(s.rows)?s.rows:[]).map(r=>(Array.isArray(r)?r:[]).map(T));if(s.cols)s.cols=s.cols.map(T)}
+  else if(s.type==='skills')s.rows=(Array.isArray(s.rows)?s.rows:[]).map(r=>({label:T(r?.label),text:T(r?.text)}));
+  else if(s.type==='awards')s.rows=(Array.isArray(s.rows)?s.rows:[]).map(r=>r?.items?{label:T(r.label),items:r.items.map(it=>({texts:(Array.isArray(it.texts)?it.texts:[it.text]).map(T),year:T(it.year)}))}:{label:T(r?.label),items:[{texts:[T(r?.text)],year:T(r?.year)}]});
+  else{s.entries=Array.isArray(s.entries)?s.entries:[];s.entries.forEach((e,j)=>{['dept','role','dates'].forEach(k=>e[k]=T(e[k]));if(e.sub!=null)e.sub=T(e.sub);e.groups=Array.isArray(e.groups)?e.groups:[];e.groups.forEach(g=>{g.label=T(g.label);if(!Array.isArray(g.bullets))bad(`bullets missing in "${s.title}", entry ${j+1}`);g.bullets=g.bullets.map(b=>T(b&&typeof b==='object'?b.t:b))})})}});return R}
 const plain=s=>String(s).replace(/\*\*/g,''),norm=t=>String(t??'').replace(/\b([A-Z])([A-Z]+)\b/g,(m,a,b)=>a+b.toLowerCase());
 const walk=(R,f)=>R.sections.forEach(s=>(s.entries||[]).forEach(e=>e.groups.forEach(g=>g.bullets=g.bullets.map(f))));
-const withBudget=async R=>{const r=await buildPDF(R),c=JSON.parse(JSON.stringify(R));walk(c,b=>{const i=r.info[plain(b)];if(!i)return{t:b};const[mn,mx]=rng(i.L,i.aw),hi=Math.max(mx,i.len);return{t:b,lines:i.L,chars:i.len,lastLineFill:i.fill+"%",minChars:Math.min(mn,hi),maxChars:hi}});return c};
+const withBudget=async R=>{let r={info:{}};try{r=await buildPDF(JSON.parse(JSON.stringify(R)))}catch(e){console.warn('measure failed',e)}const c=JSON.parse(JSON.stringify(R));walk(c,b=>{const i=r.info[plain(b)];if(!i){const n=plain(b).length,L=Math.max(1,Math.ceil(n/118));return{t:b,lines:L,chars:n,minChars:Math.round(n*.95),maxChars:Math.round(L*118*.97)}}const[mn,mx]=rng(i.L,i.aw),hi=Math.max(mx,i.len);return{t:b,lines:i.L,chars:i.len,lastLineFill:i.fill+'%',minChars:Math.min(mn,hi),maxChars:hi}});return c};
 const RULES=`Rules: rewrite bullets ONE-FOR-ONE (same count, order, sections, entries, groups, labels, dates). NEVER invent facts, numbers, tools or employers: only reword, reorder, and add JD keywords that are TRUE for the candidate. Keep **bold** markers on key terms. Keep name, sub (gender/DOB line), phone, email EXACTLY. Every bullet is {"t","lines","chars","lastLineFill","minChars","maxChars"} (measured from the real layout): the plain text (without **) must stay between minChars and maxChars so the last line is filled and no extra line is added. If a bullet is short, add relevant true JD words to fill it. Return bullets as {"t":"..."} objects in the same shape.`;
-const jdText=()=>`Company: ${$('#co').value}\nContact: ${$('#ct').value}\nJOB DESCRIPTION:\n${$('#jd').value||'(see attached screenshots)'}`;
-const tailorPrompt=async()=>`You are an expert resume editor. ${RULES}\nReturn ONLY JSON: {"resume":<same structure as the input>,"email":{"subject":"","body":"short recruiter email"},"cover":"cover letter, 3 short paragraphs, plain text, true facts only"}\n${jdText()}\n\nMASTER RESUME JSON:\n${JSON.stringify(await withBudget(S.master))}`;
-const fitPrompt=()=>`Compare this resume with the job description. Return ONLY JSON: {"match":0-100,"verdict":"","matches":[],"gaps":[],"changes":["suggested resume changes"],"questions":["questions to ask the candidate"]}\n${jdText()}\n\nRESUME JSON:\n${JSON.stringify(S.master)}`;
+const jdText=()=>`Company: ${$('#co').value}\nRole: ${$('#rl').value}\nContact: ${$('#ct').value}\nJOB DESCRIPTION:\n${$('#jd').value||'(see attached screenshots)'}`;
+const tailorPrompt=async()=>`You are an expert resume editor. ${RULES}\nReturn ONLY JSON: {"resume":<same structure as the input>,"email":{"subject":"","body":"short recruiter email"},"cover":"cover letter, 3 short paragraphs, plain text, true facts only"}\nBoth the email and the cover letter must end with this signature block:\n${sig()}\n${jdText()}\n\nMASTER RESUME JSON:\n${JSON.stringify(await withBudget(S.master))}`;
+const fitPrompt=()=>`Compare this resume with the job description. Return ONLY JSON: {"company":"company name from the JD","role":"job title from the JD","match":0-100,"verdict":"","matches":[],"gaps":[],"changes":["suggested resume changes"],"questions":["questions to ask the candidate"]}\n${jdText()}\n\nRESUME JSON:\n${JSON.stringify(S.master)}`;
 const imgParts=async()=>Promise.all([...$('#jdimg').files].map(async f=>({inlineData:{mimeType:f.type,data:await b64(f)}})));
 function merge(m,r){const o=JSON.parse(JSON.stringify(m)),g=(i,j,k)=>r?.sections?.[i]?.entries?.[j]?.groups?.[k]?.bullets||[];
  o.sections.forEach((s,i)=>{(s.entries||[]).forEach((e,j)=>e.groups.forEach((gr,k)=>{const a=g(i,j,k);gr.bullets=gr.bullets.map((b,x)=>{const v=a[x],t=typeof v==='string'?v:v?.t;return t||b})}));
@@ -80,24 +96,40 @@ function merge(m,r){const o=JSON.parse(JSON.stringify(m)),g=(i,j,k)=>r?.sections
 const today=()=>new Date().toISOString().slice(0,10),needMaster=()=>{if(!S.master)throw new Error('Import your resume first (Resume tab)')};
 const left=()=>10-(S.usage.d===today()?S.usage.n:0),showUse=()=>$('#usage').textContent=left()+' of 10 tailors left today';
 const li=a=>'<ul>'+(a||[]).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
-const showFit=r=>$('#out').innerHTML=`<div class="card"><h2>Fit</h2><div class="big">${esc(r.match)}%</div><p>${esc(r.verdict)}</p><b class="ok">Matches</b>${li(r.matches)}<b class="bad">Gaps</b>${li(r.gaps)}<b>Suggested changes</b>${li(r.changes)}<b>Questions</b>${li(r.questions)}</div>`;
-$('#bfit').onclick=e=>busy(e.target,async()=>{needMaster();showFit(await gem([{text:fitPrompt()},...await imgParts()]))});
-$('#btl').onclick=e=>busy(e.target,async()=>{needMaster();if(left()<=0)throw new Error('Daily limit of 10 tailors reached');
- const j=await gem([{text:await tailorPrompt()},...await imgParts()]);applyTailor(j);S.usage={d:today(),n:(S.usage.d===today()?S.usage.n:0)+1};save();showUse()});
-async function copyP(t,msg){$('#pastebox').style.display='block';try{await navigator.clipboard.writeText(t);toast(msg)}catch(e){$('#pcopy').style.display='block';$('#pcopy').value=t;toast('Copy was blocked: long-press the box below to copy')}}
-$('#bcl').onclick=e=>busy(e.target,async()=>{needMaster();await copyP(await tailorPrompt()+'\n\n(Attach job screenshots in Claude if you have them.)','Prompt copied. Paste it into Claude, then paste its JSON reply here.')});
-$('#bfc').onclick=e=>busy(e.target,async()=>{needMaster();await copyP(fitPrompt(),'Fit prompt copied. Paste it into Claude, then paste its JSON reply here.')});
-function applyReply(txt){try{const j=parseJSON(txt);if(j.resume)applyTailor(j);else if(j.match!=null)showFit(j);else if(j.sections){if(S.orig&&!confirm('Replace the stored Original and Master?'))return;S.orig=JSON.parse(JSON.stringify(j));S.master=j;save();fillMaster();toast('Resume imported')}else throw new Error('Unrecognised reply');return 1}catch(e){toast('Could not read reply: '+e.message)}}
-$('#bapply').onclick=()=>{if(applyReply($('#paste').value))$('#paste').value=''};$('#bia').onclick=()=>{if(applyReply($('#ipaste').value))$('#ipaste').value=''};
-function applyTailor(j){const co=$('#co').value||'Company',v={id:'v'+Date.now(),name:co+' '+today(),date:today(),R:merge(S.master,j.resume),email:j.email||{},cover:j.cover||'',co,link:$('#lk').value,contact:$('#ct').value};S.versions.unshift(v);S.versions=S.versions.slice(0,40);S.lastId=v.id;save();showOut();renderForm()}
-function showOut(){const L=S.versions.find(v=>v.id===S.lastId);if(!L){$('#out').innerHTML='';return}$('#out').innerHTML=`<div class="card"><h2>Tailored for ${esc(L.co)}</h2><button id="dp">PDF</button><button id="dd">DOCX</button><button id="dc">Cover letter PDF</button><button id="de" class="g">Copy email</button><button id="dt" class="g">Add to tracker</button><div class="s" id="dw"></div>
-<label>Recruiter email</label><pre>${esc((L.email.subject?'Subject: '+L.email.subject+'\n\n':'')+(L.email.body||''))}</pre><label>Cover letter</label><pre>${esc(L.cover)}</pre></div>`;
- const fn=(k,x)=>(k==='r'?'Anu_Kumar Singh_Resume_':'Anu Kumar Singh_Cover_Letter_')+L.co.replace(/[\\/:*?"<>|]/g,'')+x;
- $('#dp').onclick=e=>busy(e.target,async()=>{const r=await buildPDF(L.R);dl(r.doc.output('blob'),fn('r','.pdf'));$('#dw').textContent=r.warn.join(' ')});
- $('#dd').onclick=e=>busy(e.target,async()=>{await buildPDF(L.R);dl(await buildDocx(L.R),fn('r','.docx'))});
- $('#dc').onclick=e=>busy(e.target,async()=>dl(await coverPDF(L),fn('c','.pdf')));
- $('#de').onclick=()=>navigator.clipboard.writeText((L.email.subject?'Subject: '+L.email.subject+'\n\n':'')+(L.email.body||'')).then(()=>toast('Email copied'));
- $('#dt').onclick=()=>{S.apps.unshift({co:L.co,role:'',link:L.link||'',contact:L.contact||'',status:'Applied',date:today(),next:'',notes:''});save();renderApps();toast('Added to Applications')}}
+const cfgName=()=>(S.cfg.name||norm(S.master?.name)||'').trim();
+const sig=()=>[cfgName(),[S.cfg.phone,S.cfg.email,S.cfg.linkedin].filter(Boolean).join(' | ')].filter(Boolean).join('\n');
+const fileName=(kind,co,ext)=>{const n=cfgName()||'Resume',c=String(co||'').replace(/[\\/:*?"<>|]/g,'').trim(),k=kind==='cover'?'Cover Letter':'Resume';return [n,k,c].filter(Boolean).join(S.cfg.fileStyle==='space'?' ':'_')+'.'+ext};
+const jdOnlyImg=()=>$('#jdimg').files.length>0&&!$('#jd').value.trim(),noJD=()=>{if(!$('#jd').value.trim()&&!$('#jdimg').files.length)throw new Error('Paste the job description or add screenshots first')};
+const emailText=L=>{const b=String(L.email?.body||'');return(L.email?.subject?'Subject: '+L.email.subject+'\n\n':'')+b+(sig()&&!b.includes(cfgName())?'\n\n'+sig():'')};
+const showFit=r=>{if(!r||typeof r!=='object')throw new Error('Fit result is empty');if(r.company&&!$('#co').value.trim())$('#co').value=String(r.company);if(r.role&&!$('#rl').value.trim())$('#rl').value=String(r.role);
+ $('#out').innerHTML=`<div class="card"><h2>Fit</h2><div class="big">${esc(r.match)}%</div><p>${esc(r.verdict)}</p><b class="ok">Matches</b>${li(r.matches)}<b class="bad">Gaps</b>${li(r.gaps)}<b>Suggested changes</b>${li(r.changes)}<b>Questions</b>${li(r.questions)}</div>`};
+$('#bfit').onclick=e=>busy(e.target,async()=>{needMaster();noJD();showFit(await gem([{text:fitPrompt()},...await imgParts()]))});
+$('#btl').onclick=e=>busy(e.target,async()=>{needMaster();noJD();if(left()<=0)throw new Error('Daily limit of 10 tailors reached');const j=await gem([{text:await tailorPrompt()},...await imgParts()]);S.usage={d:today(),n:(S.usage.d===today()?S.usage.n:0)+1};applyTailor(j);showUse()});
+const SHOTS='Screenshots can’t travel through copy-paste: attach the screenshots in Claude or paste the JD text.';
+async function copyP(t,msg,show=true){if(show)$('#pastebox').style.display='block';try{await navigator.clipboard.writeText(t)}catch(e){$('#pastebox').style.display='block';$('#pcopy').style.display='block';$('#pcopy').value=t;throw new Error('Copy was blocked: long-press the box below to copy the prompt')}}
+$('#bcl').onclick=e=>busy(e.target,async()=>{needMaster();await copyP(await tailorPrompt());return jdOnlyImg()?{m:SHOTS+' (Prompt copied anyway.)',k:'warn'}:'Prompt copied. Paste it into Claude, then paste its JSON reply here.'});
+$('#bfc').onclick=e=>busy(e.target,async()=>{needMaster();await copyP(fitPrompt());return jdOnlyImg()?{m:SHOTS+' (Prompt copied anyway.)',k:'warn'}:'Fit prompt copied. Paste it into Claude, then paste its JSON reply here.'});
+$('#bjd').onclick=e=>busy(e.target,async()=>{await copyP('Please type out the full job description text from the attached screenshot(s) exactly as written. At the end add two lines: "Company: ..." and "Role: ...". Reply with plain text only.','',false);return'JD-extraction prompt copied. Paste it into Claude with your screenshots, then paste the text into the JD box.'});
+function applyReply(txt,noAsk){let j;try{j=parseJSON(String(txt||''))}catch(e){throw new Error('Could not read the reply as JSON ('+e.message+'). Ask Claude to return only the JSON.')}
+ if(!j||typeof j!=='object')throw new Error('Reply is not a JSON object');
+ if(j.resume){applyTailor(j);return'tailor'}if(j.match!=null){showFit(j);return'fit'}
+ if(j.sections){if(S.orig&&!noAsk&&!confirm(`Replace Original and Master?\nCurrent: ${S.orig.name||'resume'}, imported ${S.importedAt||'earlier'}.`))return'cancel';importResume(j);return'import'}
+ throw new Error('Unrecognised reply: expected a resume, a fit result or a tailored resume')}
+function importResume(j){checkResume(j,'Imported resume');S.orig=JSON.parse(JSON.stringify(j));S.master=j;S.importedAt=today();S.cfg={...S.cfg,name:norm(j.name),phone:String(j.phone||'').replace(/^[:\s]+/,''),email:j.email||''};EV='master';save();init()}
+const afterReply=k=>k==='import'?(tabTo('resume'),'Resume imported. Check the Master preview below.'):k==='tailor'?(tabTo('tailor'),'Tailored resume applied and saved as a version'):k==='fit'?'Fit result applied':{m:'Cancelled. Nothing was changed',k:'warn'};
+$('#bapply').onclick=e=>busy(e.target,async()=>{const k=applyReply($('#paste').value);if(k!=='cancel')$('#paste').value='';return afterReply(k)});
+function applyTailor(j){if(!j?.resume||typeof j.resume!=='object')throw new Error('Reply has no "resume" field');
+ const R=checkResume(merge(S.master,j.resume),'Tailored resume'),co=$('#co').value.trim()||'Company',em=j.email&&typeof j.email==='object'?j.email:{subject:'',body:String(j.email||'')},
+ v={id:'v'+Date.now(),name:co+' '+today(),date:today(),R,email:{subject:String(em.subject||''),body:String(em.body||'')},cover:String(j.cover||''),co,role:$('#rl').value,link:$('#lk').value,contact:$('#ct').value};
+ S.versions.unshift(v);S.versions=S.versions.slice(0,40);S.lastId=v.id;save();init()}
+function showOut(){const L=S.versions.find(v=>v.id===S.lastId);if(!L){$('#out').innerHTML='';return}
+ $('#out').innerHTML=`<div class="card"><h2>Tailored for ${esc(L.co)}</h2><button id="dp" data-msg="Building PDF…" data-ok="PDF ready">PDF</button><button id="dd" data-msg="Building DOCX…" data-ok="DOCX ready">DOCX</button><button id="dc" data-msg="Building cover letter…" data-ok="Cover letter ready">Cover letter PDF</button><button id="de" class="g">Copy email</button><button id="dt" class="g">Add to tracker</button>
+<label>Recruiter email</label><pre>${esc(emailText(L))}</pre><label>Cover letter</label><pre>${esc(L.cover)}</pre></div>`;
+ $('#dp').onclick=e=>busy(e.target,async()=>{const r=await buildPDF(JSON.parse(JSON.stringify(L.R)));dl(r.doc.output('blob'),fileName('resume',L.co,'pdf'));return r.warn.length?{m:'PDF ready. '+r.warn.join(' '),k:'warn'}:'PDF ready'});
+ $('#dd').onclick=e=>busy(e.target,async()=>{const R=JSON.parse(JSON.stringify(L.R));await buildPDF(R);dl(await buildDocx(R),fileName('resume',L.co,'docx'))});
+ $('#dc').onclick=e=>busy(e.target,async()=>dl(await coverPDF(L),fileName('cover',L.co,'pdf')));
+ $('#de').onclick=()=>navigator.clipboard.writeText(emailText(L)).then(()=>toast('Email copied'),()=>status('Copy was blocked by the browser','err'));
+ $('#dt').onclick=()=>{S.apps.unshift({co:L.co,role:L.role||$('#rl').value||'',link:L.link||'',contact:L.contact||'',status:'Applied',date:today(),next:'',notes:''});save();renderApps();toast('Added to Applications')}}
 const dl=(b,n)=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),9e3)};
 /* ---------- PDF ---------- */
 const FONTS=Object.fromEntries(Object.entries({r:'400-normal',b:'700-normal',i:'400-italic',j:'700-italic'}).map(([k,v])=>[k,'fontsource/fonts/eb-garamond@latest/latin-'+v+'.ttf']));
@@ -108,7 +140,7 @@ async function setupDoc(){const doc=new window.jspdf.jsPDF({unit:'pt',format:'a4
 const PH=841.89,TX=14.4,TW=569.8,LH=12.6,TR=11.7,LBL=79,RP=3.2,NAVY=[31,42,92],spMap={};
 const BW=TW-LBL-23.6-RP,rng=(L,aw)=>[Math.floor(((L-1)*BW+.92*BW)/aw),Math.floor(L*BW*.975/aw)];
 function mk(doc,fam){
- const tw=(t,st,sz,s)=>{doc.setFont(fam,st);doc.setFontSize(sz);return doc.getTextWidth(t)+t.length*s};
+ const tw=(t,st,sz,s)=>{doc.setFont(fam,st);doc.setFontSize(sz);return (doc.getTextWidth(t)||0)+t.length*s};
  const toks=(txt,base,sz)=>{const o=[];String(txt).split('**').forEach((p,i)=>(p.match(/\S+\s*/g)||[]).forEach(t=>o.push({t,st:i%2?'bold':base,sz})));return o};
  const wrap=(tk,w,s)=>{const L=[[]];let c=0;tk.forEach(k=>{if(c+tw(k.t.trimEnd(),k.st,k.sz,s)>w&&L[L.length-1].length){L.push([]);c=0}L[L.length-1].push(k);c+=tw(k.t,k.st,k.sz,s)});return L};
  const lw=(l,s)=>l.reduce((a,k,i)=>a+tw(i===l.length-1?k.t.trimEnd():k.t,k.st,k.sz,s),0);
@@ -120,14 +152,14 @@ function mk(doc,fam){
   if(o){doc.setFontSize(5);const u=o[0].toUpperCase();if(!dry)doc.text(u,cx,y-3);cx+=doc.getTextWidth(u);i+=1;continue}
   const u=ch.toUpperCase(),z=ch===u?sz:sz*r;doc.setFontSize(z);if(!dry)doc.text(u,cx,y);cx+=doc.getTextWidth(u)}return cx};
  return{tw,toks,wrap,pick,draw,sc,lw}}
-async function buildPDF(R){const{doc,fam,warn}=await setupDoc(),info={};
+async function buildPDF(R){checkResume(R,'Resume');const{doc,fam,warn}=await setupDoc(),info={},fin=v=>Number.isFinite(v)?v:0;
  const{tw,toks,wrap,pick,draw,sc,lw}=mk(doc,fam);let y=50.8,pages=1;doc.setLineWidth(.5);
  const room=h=>{if(y+h>PH-14){doc.addPage();y=14;pages++}},txt=(t,x,by,st,o)=>{doc.setFont(fam,st);doc.setFontSize(10);doc.setTextColor(0);doc.text(String(t),x,by,o)};
  const box=(x,w,h,f)=>{doc.setDrawColor(128);doc.setFillColor(f?242:255);doc.rect(x,y,w,h,f?'FD':'S')};
  const lay=(b,w,rec)=>{const tk=toks(b,'normal',10),sp=pick(tk,w),L=wrap(tk,w,sp),pb=plain(b);spMap[pb]=sp;if(rec)info[pb]={L:L.length,aw:tk.reduce((a,k)=>a+tw(k.t,k.st,k.sz,0),0)/Math.max(1,pb.length),len:pb.length,fill:Math.round(100*lw(L[L.length-1],sp)/w)};return{L,sp}};
  // header
  sc(norm(R.name),14,35,18,15/18);sc(R.sub||'',14,47.6,10,.8,'normal');
- const ph=': '+String(R.phone||'').replace(/^[:\s]+/,''),pw=tw(ph,'normal',10,0),ew=tw(R.email||'','normal',10,0);txt(ph,569,34.6,'normal',{align:'right'});txt(R.email||'',569,46.6,'normal',{align:'right'});
+ const ph=': '+String(R.phone||'').replace(/^[:\s]+/,''),pw=fin(tw(ph,'normal',10,0)),ew=fin(tw(R.email||'','normal',10,0));txt(ph,569,34.6,'normal',{align:'right'});txt(R.email||'',569,46.6,'normal',{align:'right'});
  doc.setFillColor(...NAVY);doc.setDrawColor(...NAVY);doc.setLineWidth(.6);doc.roundedRect(569-pw-9,27,5,8,1,'F');doc.rect(569-ew-12,38.5,9,6.5);doc.line(569-ew-12,38.5,569-ew-7.5,42.3);doc.line(569-ew-3,38.5,569-ew-7.5,42.3);doc.setLineWidth(.5);
  const heading=s=>{room(32);const y0=y;sc(norm(s.title),15,y0+11.8,10);if(s.note){const n=norm(s.note);sc(n,583-sc(n,0,0,10,.8,'bold',1),y0+11.8,10)}
   for(let i=0;i<48;i++){const f=i/47;doc.setFillColor(...NAVY.map((c,k)=>Math.round(c+([222,226,240][k]-c)*f)));doc.rect(12.1+i*570.9/48,y0+13.3,570.9/48+.3,3.4,'F')}y=y0+18.3};
@@ -148,9 +180,8 @@ async function buildPDF(R){const{doc,fam,warn}=await setupDoc(),info={};
   else if(s.type==='awards')awards(s);
   else(s.entries||[]).forEach(e=>{titleRow(e);e.groups.forEach(groupRow)})});
  if(pages>1)warn.push('Resume runs to '+pages+' pages: shorten some bullets in the Master or retailor.');return{doc,warn,y,pages,info}}
-async function coverPDF(L){const{doc,fam}=await setupDoc();
- let y=60;doc.setFont(fam,'bold');doc.setFontSize(15);doc.text(L.R.name||'',56,y);y+=16;doc.setFont(fam,'normal');doc.setFontSize(10);doc.text([L.R.phone,L.R.email].filter(Boolean).join('   |   '),56,y);y+=34;doc.setFontSize(11.5);
- doc.splitTextToSize(L.cover||'',483).forEach(t=>{if(y>780){doc.addPage();y=60}doc.text(t,56,y);y+=15});return doc.output('blob')}
+async function coverPDF(L){const{doc,fam}=await setupDoc(),n=cfgName();let y=60;doc.setFont(fam,'bold');doc.setFontSize(15);doc.text(n,56,y);y+=16;doc.setFont(fam,'normal');doc.setFontSize(10);doc.text([S.cfg.phone,S.cfg.email,S.cfg.linkedin].filter(Boolean).join('   |   '),56,y);y+=34;doc.setFontSize(11.5);
+ const body=String(L.cover||'').trim()+(String(L.cover||'').includes(n)?'':'\n\nSincerely,\n'+n);doc.splitTextToSize(body,483).forEach(t=>{if(y>780){doc.addPage();y=60}doc.text(t,56,y);y+=15});return doc.output('blob')}
 /* ---------- DOCX ---------- */
 const X=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const rp=(sz,o={})=>`<w:rPr><w:rFonts w:ascii="Garamond" w:hAnsi="Garamond" w:cs="Garamond"/>${o.b?'<w:b/>':''}${o.i?'<w:i/>':''}${o.sc?'<w:smallCaps/>':''}<w:spacing w:val="${Math.round((o.sp||0)*20)}"/><w:sz w:val="${sz*2}"/></w:rPr>`;
@@ -161,7 +192,7 @@ const bd='<w:top w:val="single" w:sz="4" w:color="808080"/><w:left w:val="single
 const tc=(w,ps,o={})=>`<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${o.span?`<w:gridSpan w:val="${o.span}"/>`:''}${o.vm?`<w:vMerge${o.vm==='restart'?' w:val="restart"':''}/>`:''}${o.fill?'<w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>':''}<w:vAlign w:val="${o.va||'top'}"/></w:tcPr>${ps}</w:tc>`;
 const tbl=(cols,rows,b=1)=>`<w:tbl><w:tblPr><w:tblW w:w="${cols.reduce((a,c)=>a+c,0)}" w:type="dxa"/>${b?`<w:tblBorders>${bd}</w:tblBorders>`:''}<w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="30" w:type="dxa"/><w:left w:w="60" w:type="dxa"/><w:bottom w:w="30" w:type="dxa"/><w:right w:w="60" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${cols.map(c=>`<w:gridCol w:w="${c}"/>`).join('')}</w:tblGrid>${rows.map(r=>`<w:tr>${r}</w:tr>`).join('')}</w:tbl>`;
 const gap='<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="20" w:lineRule="exact"/></w:pPr></w:p>',cp=(t,sz,o,jc)=>par(run(t,sz,o),'',jc?`<w:jc w:val="${jc}"/>`:'');
-async function buildDocx(R){let b='';const TWD=11340,LB=1580,YB=640,Nm=n=>norm(n||''),bl=x=>par(run('•',10)+tab+rich(x,10,spMap[plain(x)]||0),'<w:tabs><w:tab w:val="left" w:pos="340"/></w:tabs>','<w:ind w:left="340" w:hanging="340"/>');
+async function buildDocx(R){checkResume(R,'Resume');let b='';const TWD=11340,LB=1580,YB=640,Nm=n=>norm(n||''),bl=x=>par(run('•',10)+tab+rich(x,10,spMap[plain(x)]||0),'<w:tabs><w:tab w:val="left" w:pos="340"/></w:tabs>','<w:ind w:left="340" w:hanging="340"/>');
  b+=tbl([7400,3940],[tc(7400,par(run(Nm(R.name),18,{b:1,sc:1}))+par(run(R.sub||'',10,{sc:1})))+tc(3940,cp(': '+String(R.phone||'').replace(/^[:\s]+/,''),10,{},'right')+cp(R.email||'',10,{},'right'))],0);
  R.sections.forEach(s=>{b+=par(run(Nm(s.title),10,{b:1,sc:1})+(s.note?tab+run(Nm(s.note),10,{b:1,sc:1}):''),`<w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="1F2A5C"/></w:pBdr><w:tabs><w:tab w:val="right" w:pos="${TWD}"/></w:tabs>`).replace('w:before="0"','w:before="80"');
   if(s.type==='scholastic'){const n=(s.cols||s.rows?.[0]||[]).length||5,c=(n===5?[34.9,134.2,220.6,54,126.1]:Array(n).fill(569.8/n)).map(x=>Math.round(x*20));c[0]+=TWD-c.reduce((a,x)=>a+x,0);b+=tbl(c,[...(s.cols?.length?[s.cols.map((h,i)=>tc(c[i],cp(h,10,{b:1},'center'))).join('')]:[]),...(s.rows||[]).map(r=>r.map((v,i)=>tc(c[i],cp(plain(v),10,{b:i===n-1},'center'))).join(''))])}
@@ -176,25 +207,36 @@ async function buildDocx(R){let b='';const TWD=11340,LB=1580,YB=640,Nm=n=>norm(n
  z.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');z.file('word/document.xml',doc);
  return z.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})}
 /* ---------- Resume tab ---------- */
-let EV='master';const cur=()=>EV==='master'?S.master:S.versions.find(v=>v.id===EV)?.R,tabTo=t=>document.querySelector('nav a[data-t="'+t+'"]').click();
+const importPrompt=()=>`Convert this resume into JSON exactly in this schema. Keep every word, the name, the gender/DOB line, and keep **bold** markers around words that are bold in bullets. Do not summarise. Name, section titles and section notes that are shown in small caps must be returned in Title Case (e.g. "Work Experience", "(52 Months)"); keep the gender/DOB line with its original letter case (e.g. "MALE, DOB: Dec 12th, 1996"). Return ONLY JSON.\n${SCHEMA}`;
+let EV='master';const getR=id=>id==='orig'?S.orig:id==='master'?S.master:S.versions.find(v=>v.id===id)?.R,cur=()=>getR(EV),tabTo=t=>document.querySelector('nav a[data-t="'+t+'"]').click();
 const rowsText=s=>(s.type==='scholastic'?[...(s.cols?.length?[s.cols.join(' | ')]:[]),...(s.rows||[]).map(r=>r.join(' | '))]:s.type==='skills'?(s.rows||[]).map(r=>r.label+' | '+r.text):(s.rows||[]).flatMap(r=>(r.items||[{texts:[r.text],year:r.year}]).map((it,k)=>(k?'':r.label||'')+' | '+it.texts.join(' ;; ')+' | '+it.year))).join('\n');
 function setRows(s,v){const L=v.split('\n').filter(x=>x.trim()).map(l=>l.split('|').map(x=>x.trim()));if(s.type==='scholastic'){if(s.cols?.length)s.cols=L.shift()||[];s.rows=L}else if(s.type==='skills')s.rows=L.map(a=>({label:a[0],text:a.slice(1).join(' | ')}));else{s.rows=[];L.forEach(a=>{const it={texts:(a[1]||'').split(' ;; '),year:a[2]||''},p=s.rows.at(-1);if(!a[0]&&p)p.items.push(it);else s.rows.push({label:a[0],items:[it]})})}}
-function renderForm(){if(!cur())EV='master';const R=cur();$('#vs').innerHTML='<option value="master">Master</option>'+S.versions.map(v=>`<option value="${v.id}"${v.id===EV?' selected':''}>${esc(v.name)}</option>`).join('');
+function previewHTML(R){if(!R)return'<div class="s">Nothing stored yet.</div>';const b=x=>esc(x).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');let h=`<div class="rv"><div class="rh"><div><span class="nm">${esc(norm(R.name))}</span><br>${esc(R.sub)}</div><div style="text-align:right">${esc(R.phone)}<br>${esc(R.email)}</div></div>`;
+ (R.sections||[]).forEach(s=>{h+=`<div class="rs"><span>${esc(norm(s.title))}</span><span>${esc(norm(s.note))}</span></div>`;
+  if(s.type==='scholastic')h+='<table>'+[s.cols,...(s.rows||[])].filter(Boolean).map((r,i)=>'<tr>'+r.map(c=>`<td style="text-align:center">${i===0&&s.cols?'<b>'+esc(c)+'</b>':b(c)}</td>`).join('')+'</tr>').join('')+'</table>';
+  else if(s.type==='skills')h+='<table>'+(s.rows||[]).map(r=>`<tr><td class="l">${esc(r.label)}</td><td>${b(r.text)}</td></tr>`).join('')+'</table>';
+  else if(s.type==='awards')h+='<table>'+(s.rows||[]).map(r=>{const its=r.items||[{texts:[r.text],year:r.year}];return its.map((it,k)=>`<tr>${k?'':`<td class="l" rowspan="${its.length}">${esc(r.label||'')}</td>`}<td>${(it.texts||[]).map(t=>'• '+b(t)).join(' &nbsp; ')}</td><td><i>${esc(it.year)}</i></td></tr>`).join('')}).join('')+'</table>';
+  else(s.entries||[]).forEach(e=>{h+=`<table><tr class="t"><td colspan="2"><b>${esc(e.dept)}</b><span>${esc(e.dates)}</span><span>${esc(e.role)}</span></td></tr>${e.sub?`<tr class="t"><td colspan="2"><b>${esc(e.sub)}</b></td></tr>`:''}${(e.groups||[]).map(g=>`<tr><td class="l">${esc(g.label)}</td><td>${(g.bullets||[]).map(x=>'• '+b(x)).join('<br>')}</td></tr>`).join('')}</table>`})});return h+'</div>'}
+const renderPreviews=()=>{for(const[id,R]of[['#pvm',S.master],['#pvo',S.orig]]){try{$(id).innerHTML=previewHTML(R)}catch(e){$(id).innerHTML='<div class="s bad">Preview failed: '+esc(e.message)+'</div>'}}};
+function renderForm(){if(!cur())EV='master';const R=cur(),ro=EV==='orig'?' disabled':'';$('#vs').innerHTML='<option value="orig">Original (read-only)</option><option value="master">Master</option>'+S.versions.map(v=>`<option value="${v.id}">${esc(v.name)}</option>`).join('');$('#vs').value=EV;
  if(!R){$('#ef').innerHTML='<div class="s">Import a resume first.</div>';$('#mj').value='';return}
- $('#ef').innerHTML=[['name','Name'],['sub','Gender / DOB line'],['phone','Phone'],['email','Email']].map(([k,l])=>`<label>${l}</label><input data-h="${k}" value="${esc(R[k])}">`).join('')+R.sections.map((s,i)=>`<hr><label>Section title</label><input data-s="${i}" data-k="title" value="${esc(s.title)}"><label>Note (e.g. (52 MONTHS))</label><input data-s="${i}" data-k="note" value="${esc(s.note)}">`+((s.entries||[]).map((e,j)=>['dept','role','dates','sub'].map(k=>`<label>${k}</label><input data-s="${i}" data-e="${j}" data-k="${k}" value="${esc(e[k])}">`).join('')+e.groups.map((g,k)=>`<label>${esc(g.label)}: one bullet per line</label><textarea data-s="${i}" data-e="${j}" data-g="${k}" style="min-height:90px">${esc(g.bullets.join('\n'))}</textarea>`).join('')).join('')||`<label>${s.type}: one row per line, columns separated by |</label><textarea data-s="${i}" data-r="1" style="min-height:90px">${esc(rowsText(s))}</textarea>`)).join('');
+ $('#ef').innerHTML=(ro?'<div class="s">The Original is read-only. Save a copy as a version to edit it.</div>':'')+[['name','Name'],['sub','Gender / DOB line'],['phone','Phone'],['email','Email']].map(([k,l])=>`<label>${l}</label><input data-h="${k}" value="${esc(R[k])}"${ro}>`).join('')+R.sections.map((s,i)=>`<hr><label>Section title</label><input data-s="${i}" data-k="title" value="${esc(s.title)}"${ro}><label>Note (e.g. (52 Months))</label><input data-s="${i}" data-k="note" value="${esc(s.note)}"${ro}>`+((s.entries||[]).map((e,j)=>['dept','role','dates','sub'].map(k=>`<label>${k}</label><input data-s="${i}" data-e="${j}" data-k="${k}" value="${esc(e[k])}"${ro}>`).join('')+e.groups.map((g,k)=>`<label>${esc(g.label)}: one bullet per line</label><textarea data-s="${i}" data-e="${j}" data-g="${k}" style="min-height:90px"${ro}>${esc(g.bullets.join('\n'))}</textarea>`).join('')).join('')||`<label>${s.type}: one row per line, columns separated by |</label><textarea data-s="${i}" data-r="1" style="min-height:90px"${ro}>${esc(rowsText(s))}</textarea>`)).join('');
  $('#mj').value=JSON.stringify(R,null,1)}
-const fillMaster=()=>{$('#rinfo').textContent=S.master?`Original and Master stored. ${S.master.sections.length} sections.`:'No resume imported yet.';renderForm()};
-$('#ef').onchange=e=>{const d=e.target.dataset,R=cur(),v=e.target.value;if(d.h)R[d.h]=v;else if(d.g!=null)R.sections[d.s].entries[d.e].groups[d.g].bullets=v.split('\n').map(x=>x.trim()).filter(Boolean);else if(d.r)setRows(R.sections[d.s],v);else if(d.e!=null)R.sections[d.s].entries[d.e][d.k]=v;else R.sections[d.s][d.k]=v;save();$('#mj').value=JSON.stringify(R,null,1)};
+const fillMaster=()=>{$('#rinfo').textContent=S.master?`Stored: ${S.orig?.name||S.master.name||'resume'}${S.importedAt?', imported '+S.importedAt:''}. ${S.master.sections.length} sections.`:'No resume imported yet.';renderForm();renderPreviews()};
+$('#ef').onchange=e=>{if(EV==='orig')return;const d=e.target.dataset,R=cur(),v=e.target.value;if(d.h)R[d.h]=v;else if(d.g!=null)R.sections[d.s].entries[d.e].groups[d.g].bullets=v.split('\n').map(x=>x.trim()).filter(Boolean);else if(d.r)setRows(R.sections[d.s],v);else if(d.e!=null)R.sections[d.s].entries[d.e][d.k]=v;else R.sections[d.s][d.k]=v;save();$('#mj').value=JSON.stringify(R,null,1);renderPreviews()};
 $('#vs').onchange=e=>{EV=e.target.value;renderForm()};
-$('#bsv').onclick=()=>{const R=cur();if(!R)return;const n=prompt('Version name','Copy '+today());if(!n)return;const v={id:'v'+Date.now(),name:n,date:today(),R:JSON.parse(JSON.stringify(R)),email:{},cover:'',co:n};S.versions.unshift(v);EV=v.id;save();renderForm()};
-$('#bvo').onclick=()=>{if(EV==='master')return toast('Pick a version first');S.lastId=EV;showOut();tabTo('tailor')};
-$('#bvd').onclick=()=>{if(EV!=='master'&&confirm('Delete this version?')){S.versions=S.versions.filter(v=>v.id!==EV);if(S.lastId===EV)S.lastId=null;EV='master';save();renderForm();showOut()}};
-const importPrompt=()=>`Convert this resume into JSON exactly in this schema. Keep every word, the name, the gender/DOB line, and keep **bold** markers around words that are bold in bullets. Do not summarise. Name, section titles and section notes that are shown in small caps must be returned in Title Case (e.g. "Work Experience", "(52 Months)"); keep the gender/DOB line with its original letter case (e.g. "MALE, DOB: Dec 12th, 1996"). Return ONLY JSON.\n${SCHEMA}`;
-$('#bimp').onclick=e=>busy(e.target,async()=>{const f=$('#rf').files[0],parts=[{text:importPrompt()}];if(f)parts.push(await filePart(f));if($('#rt').value.trim())parts.push({text:'RESUME TEXT:\n'+$('#rt').value});if(parts.length<2)throw new Error('Choose a file or paste text');
- const r=await gem(parts);if(!r.sections)throw new Error('Unexpected reply, try again');applyReply(JSON.stringify(r))});
-$('#bic').onclick=async()=>{try{await navigator.clipboard.writeText(importPrompt()+($('#rt').value.trim()?'\n\nRESUME TEXT:\n'+$('#rt').value:'\n\n(Attach your resume file in Claude.)'));toast('Prompt copied. Paste it into Claude, then paste its JSON reply below.')}catch(e){toast('Copy was blocked')}};
-$('#bsm').onclick=()=>{try{const j=JSON.parse($('#mj').value);if(!j.sections)throw 0;if(EV==='master'){S.master=j;if(!S.orig)S.orig=JSON.parse(JSON.stringify(j))}else S.versions.find(v=>v.id===EV).R=j;save();renderForm();toast('Applied')}catch(e){toast('Invalid JSON')}};
-$('#bro').onclick=()=>{if(S.orig&&confirm('Reset Master to Original?')){S.master=JSON.parse(JSON.stringify(S.orig));save();fillMaster()}};
+$('#bsv').onclick=()=>{const R=cur();if(!R)return;const n=prompt('Version name','Copy '+today());if(!n)return;const v={id:'v'+Date.now(),name:n,date:today(),R:JSON.parse(JSON.stringify(R)),email:{},cover:'',co:n};S.versions.unshift(v);EV=v.id;save();init()};
+$('#bvo').onclick=()=>{if(EV==='master'||EV==='orig')return toast('Pick a tailored version first');S.lastId=EV;showOut();tabTo('tailor')};
+$('#bvd').onclick=()=>{if(EV!=='master'&&EV!=='orig'&&confirm('Delete this version?')){S.versions=S.versions.filter(v=>v.id!==EV);if(S.lastId===EV)S.lastId=null;EV='master';save();init()}};
+$('#bsm').onclick=()=>{try{if(EV==='orig')throw new Error('The Original is read-only');const j=checkResume(JSON.parse($('#mj').value),'JSON');if(EV==='master'){S.master=j;if(!S.orig){S.orig=JSON.parse(JSON.stringify(j));S.importedAt=today()}}else S.versions.find(v=>v.id===EV).R=j;save();init();toast('JSON applied')}catch(e){status('Invalid JSON: '+e.message,'err')}};
+$('#bro').onclick=()=>{if(S.orig&&confirm('Reset Master to Original?')){S.master=JSON.parse(JSON.stringify(S.orig));save();init()}};
+const expBtn=(id,get,tag,fmt)=>$(id).onclick=e=>busy(e.target,async()=>{const R=get();if(!R)throw new Error('Nothing to export yet: import your resume first');const c=JSON.parse(JSON.stringify(R)),r=await buildPDF(c);if(fmt==='pdf'){dl(r.doc.output('blob'),fileName('resume',tag,'pdf'));return r.warn.length?{m:'PDF ready. '+r.warn.join(' '),k:'warn'}:'PDF ready'}dl(await buildDocx(c),fileName('resume',tag,'docx'))});
+expBtn('#pmp',()=>S.master,'Master','pdf');expBtn('#pmd',()=>S.master,'Master','docx');expBtn('#pop',()=>S.orig,'Original','pdf');expBtn('#pod',()=>S.orig,'Original','docx');
+$('#bimp').onclick=e=>busy(e.target,async()=>{if(S.orig&&!confirm(`Replace Original and Master?\nCurrent: ${S.orig.name||'resume'}, imported ${S.importedAt||'earlier'}.`))return{m:'Cancelled. Nothing was changed',k:'warn'};
+ const f=$('#rf').files[0],parts=[{text:importPrompt()}];if(f)parts.push(await filePart(f));if($('#rt').value.trim())parts.push({text:'RESUME TEXT:\n'+$('#rt').value});if(parts.length<2)throw new Error('Choose a file or paste text first');
+ const r=await gem(parts);if(!r||!r.sections)throw new Error('Gemini did not return a resume. Try again.');return afterReply(applyReply(JSON.stringify(r),true))});
+$('#bic').onclick=e=>busy(e.target,async()=>{const t=importPrompt()+($('#rt').value.trim()?'\n\nRESUME TEXT:\n'+$('#rt').value:'\n\n(Attach your resume file in Claude.)');try{await navigator.clipboard.writeText(t)}catch(x){throw new Error('Copy was blocked by the browser')}return'Prompt copied. Paste it into Claude, then paste the JSON reply below.'});
+$('#bia').onclick=e=>busy(e.target,async()=>{const k=applyReply($('#ipaste').value);if(k!=='cancel')$('#ipaste').value='';return afterReply(k)});
 /* ---------- Wins ---------- */
 const targets=()=>{const t=[];(S.master?.sections||[]).forEach((s,i)=>(s.entries||[]).forEach((e,j)=>e.groups.forEach((g,k)=>t.push({i,j,k,l:`${s.title} › ${e.dept||e.role} › ${g.label}`}))));return t};
 const grp=t=>t&&S.master.sections[t.i].entries[t.j].groups[t.k];
@@ -217,12 +259,16 @@ $('#al').onchange=e=>{const d=e.target.dataset;if(d.f){S.apps[d.i][d.f]=e.target
 $('#ba').onclick=()=>{S.apps.unshift({co:'',role:'',link:'',contact:'',status:'Applied',date:today(),next:'',notes:''});save();renderApps()};
 $('#bcsv').onclick=()=>{const k=['co','role','link','contact','status','date','next','notes'],q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';dl(new Blob([[['Company','Role','Link','Contact','Status','Applied','Next step','Notes'].map(q).join(','),...S.apps.map(a=>k.map(f=>q(a[f])).join(','))].join('\r\n')],{type:'text/csv'}),'applications.csv')};
 /* ---------- Settings / backup / nav ---------- */
-$('#bset').onclick=()=>{S.cfg={key:$('#key').value.trim(),tight:+$('#tg').value||0,stretch:+$('#st').value||0};S.models=null;save();toast('Saved')};
+const mask=k=>k?k.slice(0,4)+'....'+k.slice(-4)+' saved':'No key saved yet';
+function fillSettings(){const m=S.master,c=S.cfg;if(m){if(!c.name)c.name=norm(m.name);if(!c.phone)c.phone=String(m.phone||'').replace(/^[:\s]+/,'');if(!c.email)c.email=m.email||''}
+ ['name','phone','email','linkedin'].forEach(k=>$('#s-'+k).value=c[k]||'');$('#fs').value=c.fileStyle||'under';$('#key').value='';$('#keyst').textContent=mask(c.key);$('#tg').value=c.tight;$('#st').value=c.stretch}
+$('#bset').onclick=e=>busy(e.target,async()=>{const k=$('#key').value.trim();S.cfg={...S.cfg,key:k||S.cfg.key,name:$('#s-name').value.trim(),phone:$('#s-phone').value.trim(),email:$('#s-email').value.trim(),linkedin:$('#s-linkedin').value.trim(),fileStyle:$('#fs').value,tight:+$('#tg').value||0,stretch:+$('#st').value||0};if(k)S.models=null;await save();fillSettings()});
+$('#btk').onclick=e=>busy(e.target,async()=>{const k=$('#key').value.trim();if(k){S.cfg.key=k;S.models=null;await save();fillSettings()}const m=await pickModels(true),r=await gem([{text:'Reply with exactly: OK'}],false);return`Key works. Best model: ${m.best}. Fallback: ${m.lite}. Gemini said: ${r.trim().slice(0,30)}`});
 $('#bex').onclick=()=>{const c={...S,cfg:{...S.cfg,key:''},models:null};dl(new Blob([JSON.stringify(c)],{type:'application/json'}),'resume-tailor-backup-'+today()+'.json')};
 $('#bim').onclick=()=>$('#bf').click();
-$('#bf').onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());if(!confirm('Replace all data on this device?'))return;S={...S,...j,cfg:{...S.cfg,...j.cfg,key:S.cfg.key}};await save();init();toast('Backup restored')}catch(x){toast('Invalid backup')}};
+$('#bf').onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());if(!confirm('Replace all data on this device?'))return;S={...S,...j,cfg:{...S.cfg,...j.cfg,key:S.cfg.key}};await save();init();toast('Backup restored')}catch(x){status('Invalid backup file','err')}};
 document.querySelectorAll('nav a').forEach(a=>a.onclick=()=>{document.querySelectorAll('nav a,.tab').forEach(x=>x.classList.remove('on'));a.classList.add('on');$('#t-'+a.dataset.t).classList.add('on');scrollTo(0,0)});
-function init(){$('#key').value=S.cfg.key;$('#tg').value=S.cfg.tight;$('#st').value=S.cfg.stretch;fillMaster();renderApps();renderWins();showUse();showOut()}
+function init(){fillSettings();fillMaster();renderApps();renderWins();showUse();showOut()}
 (async()=>{const x=await kv('get','state');if(x)S={...S,...x,cfg:{...S.cfg,...x.cfg}};init();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js')})();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
