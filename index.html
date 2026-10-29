@@ -16,7 +16,7 @@ nav a{flex:1;text-align:center;padding:13px 0;font:12px system-ui,sans-serif;col
 .rv{font:12px/1.35 'EB Garamond',Garamond,Georgia,serif;overflow-x:auto}.rv table{width:100%;border-collapse:collapse;margin:0}.rv td{border:.5px solid #808080;padding:1px 4px;vertical-align:middle}.rv td.l{width:14%;text-align:center;font-weight:700}.rv tr.t td{background:#f2f2f2;color:#111}.rv tr.t span{float:right;margin-left:12px;font-weight:700}.rv .rh{display:flex;justify-content:space-between}.rv .nm{font-size:18px;font-variant:small-caps}.rv .rs{display:flex;justify-content:space-between;font-weight:700;font-variant:small-caps;border-bottom:3px solid #1f2a5c;margin-top:6px}
 </style></head><body><main><div id="sb"></div>
 <section id="t-tailor" class="tab on">
-<div class="card"><h2>Job</h2><label>Company</label><input id="co"><label>Role</label><input id="rl"><label>Job link</label><input id="lk" type="url"><label>Contact name</label><input id="ct">
+<div class="card"><h2>Job</h2><label>Company</label><input id="co"><label>Role</label><input id="rl"><label>Location</label><input id="lc" placeholder="e.g. Remote"><label>Job link</label><input id="lk" type="url"><label>Contact name</label><input id="ct">
 <label>Job description</label><textarea id="jd"></textarea><label>Or add screenshots</label><input id="jdimg" type="file" accept="image/*" multiple>
 <button id="bfit" data-msg="Checking fit…" data-ok="Fit check done">Check fit</button><button id="bfc" class="g" data-msg="Copying…">Check fit in Claude</button><button id="btl" data-msg="Tailoring…" data-ok="Tailored and saved as a version">Tailor</button><button id="bcl" class="g" data-msg="Preparing prompt…">Use Claude instead</button><button id="bjd" class="g" data-msg="Copying…">Copy JD-extraction prompt</button><div class="s" id="usage"></div></div>
 <div class="card" id="pastebox" style="display:none"><label>Paste Claude's JSON reply</label><textarea id="paste"></textarea><button id="bapply" data-msg="Applying reply…" data-ok="Reply applied">Apply reply</button><textarea id="pcopy" readonly style="display:none;min-height:80px"></textarea></div>
@@ -88,9 +88,17 @@ const fixAll=()=>{if(!Array.isArray(S.versions))S.versions=[];if(!Array.isArray(
 const walk=(R,f)=>R.sections.forEach(s=>(s.entries||[]).forEach(e=>e.groups.forEach(g=>g.bullets=g.bullets.map(f))));
 const withBudget=async R=>{let r={info:{}};try{r=await buildPDF(JSON.parse(JSON.stringify(R)))}catch(e){console.warn('measure failed',e)}const c=JSON.parse(JSON.stringify(R));walk(c,b=>{const i=r.info[plain(b)];if(!i){const n=plain(b).length,L=Math.max(1,Math.ceil(n/118));return{t:b,lines:L,chars:n,minChars:Math.round(n*.95),maxChars:Math.round(L*118*.97)}}const[mn,mx]=rng(i.L,i.aw),hi=Math.max(mx,i.len);return{t:b,lines:i.L,chars:i.len,lastLineFill:i.fill+'%',minChars:Math.min(mn,hi),maxChars:hi}});return c};
 const RULES=`Rules: rewrite bullets ONE-FOR-ONE (same count, order, sections, entries, groups, labels, dates). NEVER invent facts, numbers, tools or employers: only reword, reorder, and add JD keywords that are TRUE for the candidate. Keep **bold** markers on key terms. Keep name, sub (gender/DOB line), phone, email EXACTLY. Every bullet is {"t","lines","chars","lastLineFill","minChars","maxChars"} (measured from the real layout): the plain text (without **) must stay between minChars and maxChars so the last line is filled and no extra line is added. If a bullet is short, add relevant true JD words to fill it. Return bullets as {"t":"..."} objects in the same shape.`;
-const jdText=()=>`Company: ${$('#co').value}\nRole: ${$('#rl').value}\nContact: ${$('#ct').value}\nJOB DESCRIPTION:\n${$('#jd').value||'(see attached screenshots)'}`;
-const tailorPrompt=async()=>`You are an expert resume editor. ${RULES}\nReturn ONLY JSON: {"resume":<same structure as the input>,"email":{"subject":"","body":"short recruiter email"},"cover":"cover letter, 3 short paragraphs, plain text, true facts only"}\nBoth the email and the cover letter must end with this signature block:\n${sig()}\n${jdText()}\n\nMASTER RESUME JSON:\n${JSON.stringify(await withBudget(S.master))}`;
-const fitPrompt=()=>`Compare this resume with the job description. Return ONLY JSON: {"company":"company name from the JD","role":"job title from the JD","match":0-100,"verdict":"","matches":[],"gaps":[],"changes":["suggested resume changes"],"questions":["questions to ask the candidate"]}\n${jdText()}\n\nRESUME JSON:\n${JSON.stringify(S.master)}`;
+const jdText=()=>`Company: ${$('#co').value}\nRole: ${$('#rl').value}\nLocation: ${$('#lc').value}\nJOB DESCRIPTION:\n${$('#jd').value||'(see attached screenshots)'}`;
+const tailorPrompt=async()=>`You are an expert resume editor. ${RULES}
+Return ONLY JSON with exactly these keys:
+{"resume":<same structure as the input>,"company":"","role":"","location":"city or Remote, from the JD","currentEmployer":"from my resume","currentTitle":"from my resume","email":{"intro":"1-2 lines linking my current role to this JD","summary":["4-6 bullets, no leading dash, each with a real metric copied from my resume"]},"cover":{"paragraphs":["3-4 paragraphs"]}}
+Rules for email and cover letter: use ONLY numbers that appear in the resume JSON (for example 24% churn cut, 22 hr automated, Cultural Champion, SOTC <1 day); never invent facts; the cover letter needs at least 3 real metrics; plain direct sentences; no cliches such as "I am writing to express my strong interest", "passionate", "excited to", "thrilled", "dynamic", "fast-paced", "team player", "results-driven". Do NOT put a greeting, signature, subject line, or Company/Role/Location/Contact lines inside these fields: the app adds them.
+The details below are reference only, do not copy their label lines into any field.
+${jdText()}
+
+MASTER RESUME JSON:
+${JSON.stringify(await withBudget(S.master))}`;
+const fitPrompt=()=>`Compare this resume with the job description. Return ONLY JSON: {"company":"company name from the JD","role":"job title from the JD","location":"city or Remote, from the JD","match":0-100,"verdict":"","matches":[],"gaps":[],"changes":["suggested resume changes"],"questions":["questions to ask the candidate"]}\n${jdText()}\n\nRESUME JSON:\n${JSON.stringify(S.master)}`;
 const imgParts=async()=>Promise.all([...$('#jdimg').files].map(async f=>({inlineData:{mimeType:f.type,data:await b64(f)}})));
 function merge(m,r){const o=JSON.parse(JSON.stringify(m)),g=(i,j,k)=>r?.sections?.[i]?.entries?.[j]?.groups?.[k]?.bullets||[];
  o.sections.forEach((s,i)=>{(s.entries||[]).forEach((e,j)=>e.groups.forEach((gr,k)=>{const a=g(i,j,k);gr.bullets=gr.bullets.map((b,x)=>{const v=a[x],t=typeof v==='string'?v:v?.t;return t||b})}));
@@ -103,8 +111,23 @@ const cfgName=()=>(S.cfg.name||norm(S.master?.name)||'').trim();
 const sig=()=>[cfgName(),[S.cfg.phone,S.cfg.email,S.cfg.linkedin].filter(Boolean).join(' | ')].filter(Boolean).join('\n');
 const fileName=(kind,co,ext)=>{const n=cfgName()||'Resume',c=String(co||'').replace(/[\\/:*?"<>|]/g,'').trim(),k=kind==='cover'?'Cover Letter':'Resume';return [n,k,c].filter(Boolean).join(S.cfg.fileStyle==='space'?' ':'_')+'.'+ext};
 const jdOnlyImg=()=>$('#jdimg').files.length>0&&!$('#jd').value.trim(),noJD=()=>{if(!$('#jd').value.trim()&&!$('#jdimg').files.length)throw new Error('Paste the job description or add screenshots first')};
-const emailText=L=>{const b=String(L.email?.body||'');return(L.email?.subject?'Subject: '+L.email.subject+'\n\n':'')+b+(sig()&&!b.includes(cfgName())?'\n\n'+sig():'')};
-const showFit=r=>{if(!r||typeof r!=='object')throw new Error('Fit result is empty');if(r.company&&!$('#co').value.trim())$('#co').value=String(r.company);if(r.role&&!$('#rl').value.trim())$('#rl').value=String(r.role);
+const first=n=>String(n||'').trim().split(/\s+/)[0]||'',sig2=()=>[cfgName(),[S.cfg.phone,S.cfg.email].filter(Boolean).join(' | ')].filter(Boolean).join('\n'),
+asArr=v=>Array.isArray(v)?v.map(String):v?String(v).split(/\n+/):[],splitP=t=>String(t||'').split(/\n{2,}/).map(x=>x.trim()).filter(Boolean);
+function normOut(j){const em=j.email,cv=j.cover,o={company:String(j.company||''),role:String(j.role||''),location:String(j.location||''),employer:String(j.currentEmployer||j.employer||''),title:String(j.currentTitle||j.title||''),intro:'',summary:[],paras:[],raw:''};
+ if(em&&typeof em==='object'&&!Array.isArray(em)){o.intro=String(em.intro||'');o.summary=asArr(em.summary).map(x=>x.replace(/^\s*[-•]\s*/,'').trim()).filter(Boolean);if(!o.intro&&!o.summary.length&&em.body)o.raw=String(em.body)}else if(em)o.raw=String(em);
+ o.paras=cv&&typeof cv==='object'&&!Array.isArray(cv)?asArr(cv.paragraphs||cv.text).flatMap(splitP):Array.isArray(cv)?cv.map(String):splitP(cv);return o}
+const getOut=L=>L.out||normOut({email:L.email,cover:L.cover});
+const emailText=L=>{const o=getOut(L);if(o.raw)return(L.email?.subject?'Subject: '+L.email.subject+'\n\n':'')+o.raw;
+ const subj=('Application: '+(o.role||L.role||'')+(o.location?' ('+o.location+')':'')+' '+cfgName()+(o.employer||o.title?', '+[o.employer,o.title].filter(Boolean).join(' '):'')).replace(/\s+/g,' ').trim();
+ return'Subject: '+subj+'\n\n'+[`Hi ${first(L.contact)||'Hiring Team'},`,o.intro,'Summary:\n'+o.summary.map(b=>'- '+b).join('\n'),"I'd welcome a short conversation about the role and how I can contribute. My resume is attached.",'Thank you for your time.',sig2()].filter(Boolean).join('\n\n')};
+const coverText=L=>[`Dear ${first(L.contact)||'Hiring Team'},`,...getOut(L).paras,'Sincerely,\n'+cfgName()].join('\n\n');
+const numsIn=t=>String(t).match(/\d+(?:[.,]\d+)?%?/g)||[];
+function qa(L){const o=getOut(L),ref=new Set(numsIn(JSON.stringify(S.master)).map(x=>x.replace(',',''))),big=x=>x.replace(/\D/g,'').length>1,txt=[o.intro,...o.summary,...o.paras].join(' '),unk=[...new Set(numsIn(txt).filter(x=>big(x)&&!ref.has(x.replace(',',''))))],
+ metrics=numsIn(o.paras.join(' ')).filter(x=>big(x)&&ref.has(x)).length,w=[];
+ if(unk.length)w.push('Numbers not found in your resume: '+unk.join(', '));if(!o.raw&&(o.summary.length<4||o.summary.length>6))w.push('Email summary has '+o.summary.length+' bullets (wanted 4-6)');
+ if(o.paras.length&&(o.paras.length<3||o.paras.length>4))w.push('Cover letter has '+o.paras.length+' paragraphs (wanted 3-4)');if(o.paras.length&&metrics<3)w.push('Cover letter has only '+metrics+' resume metrics (wanted 3+)');
+ if(/express my strong interest|passionate|excited to|thrilled|dynamic|fast-paced|team player|results-driven/i.test(txt))w.push('Contains a banned cliché');return w}
+const showFit=r=>{if(!r||typeof r!=='object')throw new Error('Fit result is empty');for(const[id,k]of[['#co','company'],['#rl','role'],['#lc','location']])if(r[k]&&!$(id).value.trim())$(id).value=String(r[k]);
  $('#out').innerHTML=`<div class="card"><h2>Fit</h2><div class="big">${esc(r.match)}%</div><p>${esc(r.verdict)}</p><b class="ok">Matches</b>${li(r.matches)}<b class="bad">Gaps</b>${li(r.gaps)}<b>Suggested changes</b>${li(r.changes)}<b>Questions</b>${li(r.questions)}</div>`};
 $('#bfit').onclick=e=>busy(e.target,async()=>{needMaster();noJD();showFit(await gem([{text:fitPrompt()},...await imgParts()]))});
 $('#btl').onclick=e=>busy(e.target,async()=>{needMaster();noJD();if(left()<=0)throw new Error('Daily limit of 10 tailors reached');const j=await gem([{text:await tailorPrompt()},...await imgParts()]);S.usage={d:today(),n:(S.usage.d===today()?S.usage.n:0)+1};applyTailor(j);showUse()});
@@ -122,17 +145,17 @@ function importResume(j){checkResume(j,'Imported resume');S.orig=JSON.parse(JSON
 const afterReply=k=>k==='import'?(tabTo('resume'),'Resume imported. Check the Master preview below.'):k==='tailor'?(tabTo('tailor'),'Tailored resume applied and saved as a version'):k==='fit'?'Fit result applied':{m:'Cancelled. Nothing was changed',k:'warn'};
 $('#bapply').onclick=e=>busy(e.target,async()=>{const k=applyReply($('#paste').value);if(k!=='cancel')$('#paste').value='';return afterReply(k)});
 function applyTailor(j){if(!j?.resume||typeof j.resume!=='object')throw new Error('Reply has no "resume" field');
- const R=checkResume(merge(S.master,j.resume),'Tailored resume'),co=$('#co').value.trim()||'Company',em=j.email&&typeof j.email==='object'?j.email:{subject:'',body:String(j.email||'')},
- v={id:'v'+Date.now(),name:co+' '+today(),date:today(),R,email:{subject:String(em.subject||''),body:String(em.body||'')},cover:String(j.cover||''),co,role:$('#rl').value,link:$('#lk').value,contact:$('#ct').value};
+ const R=checkResume(merge(S.master,j.resume),'Tailored resume'),o=normOut(j),fill=(id,v)=>{if(v&&!$(id).value.trim())$(id).value=v};fill('#co',o.company);fill('#rl',o.role);fill('#lc',o.location);
+ const e0=(R.sections.find(s=>s.type==='entries')||{}).entries||[];o.employer=o.employer||(e0[0]&&e0[0].dept)||'';o.title=o.title||(e0.find(e=>e.role)||{}).role||'';
+ const co=$('#co').value.trim()||'Company',v={id:'v'+Date.now(),name:co+' '+today(),date:today(),R,out:o,co,role:$('#rl').value||o.role,location:$('#lc').value||o.location,link:$('#lk').value,contact:$('#ct').value};
  S.versions.unshift(v);S.versions=S.versions.slice(0,40);S.lastId=v.id;save();init()}
-function showOut(){const L=S.versions.find(v=>v.id===S.lastId);if(!L){$('#out').innerHTML='';return}
- $('#out').innerHTML=`<div class="card"><h2>Tailored for ${esc(L.co)}</h2><button id="dp" data-msg="Building PDF…" data-ok="PDF ready">PDF</button><button id="dd" data-msg="Building DOCX…" data-ok="DOCX ready">DOCX</button><button id="dc" data-msg="Building cover letter…" data-ok="Cover letter ready">Cover letter PDF</button><button id="de" class="g">Copy email</button><button id="dt" class="g">Add to tracker</button>
-<label>Recruiter email</label><pre>${esc(emailText(L))}</pre><label>Cover letter</label><pre>${esc(L.cover)}</pre></div>`;
+function showOut(){const L=S.versions.find(v=>v.id===S.lastId);if(!L){$('#out').innerHTML='';return}const w=qa(L);
+ $('#out').innerHTML=`<div class="card"><h2>Tailored for ${esc(L.co)}</h2><button id="dp" data-msg="Building PDF…" data-ok="PDF ready">PDF</button><button id="dd" data-msg="Building DOCX…" data-ok="DOCX ready">DOCX</button><button id="dc" data-msg="Building cover letter…" data-ok="Cover letter ready">Cover letter PDF</button><button id="de" class="g">Copy email</button><button id="dt" class="g">Add to tracker</button>${w.length?'<div class="s bad">'+w.map(esc).join('<br>')+'</div>':''}</div><div class="card"><h2>Recruiter email</h2><pre>${esc(emailText(L))}</pre></div><div class="card"><h2>Cover letter</h2><pre>${esc(coverText(L))}</pre></div>`;
  $('#dp').onclick=e=>busy(e.target,async()=>{const r=await buildPDF(JSON.parse(JSON.stringify(L.R)));dl(r.doc.output('blob'),fileName('resume',L.co,'pdf'));return r.warn.length?{m:'PDF ready. '+r.warn.join(' '),k:'warn'}:'PDF ready'});
  $('#dd').onclick=e=>busy(e.target,async()=>{const R=JSON.parse(JSON.stringify(L.R));await buildPDF(R);dl(await buildDocx(R),fileName('resume',L.co,'docx'))});
  $('#dc').onclick=e=>busy(e.target,async()=>dl(await coverPDF(L),fileName('cover',L.co,'pdf')));
  $('#de').onclick=()=>navigator.clipboard.writeText(emailText(L)).then(()=>toast('Email copied'),()=>status('Copy was blocked by the browser','err'));
- $('#dt').onclick=()=>{S.apps.unshift({co:L.co,role:L.role||$('#rl').value||'',link:L.link||'',contact:L.contact||'',status:'Applied',date:today(),next:'',notes:''});save();renderApps();toast('Added to Applications')}}
+ $('#dt').onclick=()=>{S.apps.unshift({co:L.co,role:L.role||'',link:L.link||'',contact:L.contact||'',status:'Applied',date:today(),next:'',notes:''});save();renderApps();toast('Added to Applications')}}
 const dl=(b,n)=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),9e3)};
 /* ---------- PDF ---------- */
 const FONTS=Object.fromEntries(Object.entries({r:'400-normal',b:'700-normal',i:'400-italic',j:'700-italic'}).map(([k,v])=>[k,'fontsource/fonts/eb-garamond@latest/latin-'+v+'.ttf']));
@@ -155,15 +178,15 @@ function mk(doc,fam){
   if(o){doc.setFontSize(5);const u=o[0].toUpperCase();if(!dry)doc.text(u,cx,y-3);cx+=doc.getTextWidth(u);i+=1;continue}
   const u=ch.toUpperCase(),z=ch===u?sz:sz*r;doc.setFontSize(z);if(!dry)doc.text(u,cx,y);cx+=doc.getTextWidth(u)}return cx};
  return{tw,toks,wrap,pick,draw,sc,lw}}
-async function buildPDF(R){checkResume(R,'Resume');const{doc,fam,warn}=await setupDoc(),info={},fin=v=>Number.isFinite(v)?v:0;
+async function buildPDF(R){checkResume(R,'Resume');const{doc,fam,warn}=await setupDoc(),info={},fin=v=>Number.isFinite(v)?v:0,chk=(n,...a)=>{if(a.some(v=>typeof v!=='number'||!Number.isFinite(v)))throw new Error(`PDF element "${n}" has an invalid number (${a.join(', ')})`)};
  const{tw,toks,wrap,pick,draw,sc,lw}=mk(doc,fam);let y=50.8,pages=1;doc.setLineWidth(.5);
- const room=h=>{if(y+h>PH-14){doc.addPage();y=14;pages++}},txt=(t,x,by,st,o)=>{doc.setFont(fam,st);doc.setFontSize(10);doc.setTextColor(0);doc.text(String(t),x,by,o)};
- const box=(x,w,h,f)=>{doc.setDrawColor(128);doc.setFillColor(f?242:255);doc.rect(x,y,w,h,f?'FD':'S')};
+ const room=h=>{if(y+h>PH-14){doc.addPage();y=14;pages++}},txt=(t,x,by,st,o)=>{chk('text "'+String(t).slice(0,25)+'"',x,by);doc.setFont(fam,st);doc.setFontSize(10);doc.setTextColor(0);doc.text(String(t),x,by,o)};
+ const box=(x,w,h,f)=>{chk('table cell',x,y,w,h);doc.setDrawColor(128);doc.setFillColor(f?242:255);doc.rect(x,y,w,h,f?'FD':'S')};
  const lay=(b,w,rec)=>{const tk=toks(b,'normal',10),sp=pick(tk,w),L=wrap(tk,w,sp),pb=plain(b);spMap[pb]=sp;if(rec)info[pb]={L:L.length,aw:tk.reduce((a,k)=>a+tw(k.t,k.st,k.sz,0),0)/Math.max(1,pb.length),len:pb.length,fill:Math.round(100*lw(L[L.length-1],sp)/w)};return{L,sp}};
  // header
  sc(norm(R.name),14,35,18,15/18);sc(R.sub||'',14,47.6,10,.8,'normal');
  const ph=': '+String(R.phone||'').replace(/^[:\s]+/,''),pw=fin(tw(ph,'normal',10,0)),ew=fin(tw(R.email||'','normal',10,0));txt(ph,569,34.6,'normal',{align:'right'});txt(R.email||'',569,46.6,'normal',{align:'right'});
- doc.setFillColor(...NAVY);doc.setDrawColor(...NAVY);doc.setLineWidth(.6);doc.roundedRect(569-pw-9,27,5,8,1,'F');doc.rect(569-ew-12,38.5,9,6.5);doc.line(569-ew-12,38.5,569-ew-7.5,42.3);doc.line(569-ew-3,38.5,569-ew-7.5,42.3);doc.setLineWidth(.5);
+ doc.setFillColor(...NAVY);doc.setDrawColor(...NAVY);doc.setLineWidth(.6);chk('header icons',pw,ew);doc.rect(569-pw-9,27,5,8,'F');doc.rect(569-ew-12,38.5,9,6.5);doc.line(569-ew-12,38.5,569-ew-7.5,42.3);doc.line(569-ew-3,38.5,569-ew-7.5,42.3);doc.setLineWidth(.5);
  const heading=s=>{room(32);const y0=y;sc(norm(s.title),15,y0+11.8,10);if(s.note){const n=norm(s.note);sc(n,583-sc(n,0,0,10,.8,'bold',1),y0+11.8,10)}
   for(let i=0;i<48;i++){const f=i/47;doc.setFillColor(...NAVY.map((c,k)=>Math.round(c+([222,226,240][k]-c)*f)));doc.rect(12.1+i*570.9/48,y0+13.3,570.9/48+.3,3.4,'F')}y=y0+18.3};
  const cells=(cols,vals,sty,fill,tr)=>{const ls=vals.map((v,i)=>{doc.setFont(fam,sty[i].st);doc.setFontSize(10);return doc.splitTextToSize(plain(v??''),cols[i]-8.8)}),n=Math.max(...ls.map(l=>l.length)),p=tr?TR:11.5,h=n*p;room(h);let x=TX;
@@ -177,14 +200,14 @@ async function buildPDF(R){checkResume(R,'Resume');const{doc,fam,warn}=await set
  const awards=s=>(s.rows||[]).map(r=>r.items?r:{label:r.label||'',items:[{texts:[r.text],year:r.year}]}).forEach(r=>{const AW=TW-LBL-32.2,its=r.items.map(i=>{const cw=AW/i.texts.length,ls=i.texts.map(t=>lay(t,cw-21-RP));return{i,cw,ls,h:Math.max(...ls.map(l=>l.L.length))*12.4+.4}}),H=its.reduce((a,i)=>a+i.h,0);room(H);
   box(TX,LBL,H,0);doc.setFont(fam,'bold');doc.setFontSize(10);const ll=doc.splitTextToSize(r.label||'',LBL-8);ll.forEach((t,k)=>txt(t,TX+LBL/2,y+(H-ll.length*LH)/2+9.7+k*LH,'bold',{align:'center'}));
   its.forEach(it=>{let x=TX+LBL;it.ls.forEach(l=>{box(x,it.cw,it.h,0);txt('•',x+5.6,y+10,'normal');draw(l.L,l.sp,x+21,y+10);x+=it.cw});box(TX+LBL+AW,32.2,it.h,0);txt(it.i.year||'',TX+TW-RP,y+10,'italic',{align:'right'});y+=it.h})});
- R.sections.forEach(s=>{heading(s);
+ R.sections.forEach(s=>{try{heading(s);
   if(s.type==='scholastic'){const n=(s.cols||s.rows?.[0]||[]).length||5,c=n===5?[34.9,134.2,220.6,54,126.1]:Array(n).fill(TW/n);if(s.cols?.length)cells(c,s.cols,c.map(()=>({st:'bold',a:'c'})),0,1);(s.rows||[]).forEach(r=>cells(c,r,c.map((_,i)=>({st:i===n-1?'bold':'normal',a:'c'})),0,1))}
   else if(s.type==='skills')(s.rows||[]).forEach(r=>cells([LBL,TW-LBL],[r.label,r.text],[{st:'bold',a:'c'},{st:'normal'}],0));
   else if(s.type==='awards')awards(s);
-  else(s.entries||[]).forEach(e=>{titleRow(e);e.groups.forEach(groupRow)})});
+  else(s.entries||[]).forEach(e=>{titleRow(e);e.groups.forEach(groupRow)})}catch(err){throw new Error('Section "'+s.title+'": '+err.message)}});
  if(pages>1)warn.push('Resume runs to '+pages+' pages: shorten some bullets in the Master or retailor.');return{doc,warn,y,pages,info}}
 async function coverPDF(L){const{doc,fam}=await setupDoc(),n=cfgName();let y=60;doc.setFont(fam,'bold');doc.setFontSize(15);doc.text(n,56,y);y+=16;doc.setFont(fam,'normal');doc.setFontSize(10);doc.text([S.cfg.phone,S.cfg.email,S.cfg.linkedin].filter(Boolean).join('   |   '),56,y);y+=34;doc.setFontSize(11.5);
- const body=String(L.cover||'').trim()+(String(L.cover||'').includes(n)?'':'\n\nSincerely,\n'+n);doc.splitTextToSize(body,483).forEach(t=>{if(y>780){doc.addPage();y=60}doc.text(t,56,y);y+=15});return doc.output('blob')}
+ for(const p of [`Dear ${first(L.contact)||'Hiring Team'},`,...getOut(L).paras,'Sincerely,',n]){for(const t of doc.splitTextToSize(p,483)){if(y>780){doc.addPage();y=60}doc.text(t,56,y);y+=15}y+=(p==='Sincerely,'?0:7)}return doc.output('blob')}
 /* ---------- DOCX ---------- */
 const X=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const rp=(sz,o={})=>`<w:rPr><w:rFonts w:ascii="Garamond" w:hAnsi="Garamond" w:cs="Garamond"/>${o.b?'<w:b/>':''}${o.i?'<w:i/>':''}${o.sc?'<w:smallCaps/>':''}<w:spacing w:val="${Math.round((o.sp||0)*20)}"/><w:sz w:val="${sz*2}"/></w:rPr>`;
@@ -263,7 +286,7 @@ $('#ba').onclick=()=>{S.apps.unshift({co:'',role:'',link:'',contact:'',status:'A
 $('#bcsv').onclick=()=>{const k=['co','role','link','contact','status','date','next','notes'],q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';dl(new Blob([[['Company','Role','Link','Contact','Status','Applied','Next step','Notes'].map(q).join(','),...S.apps.map(a=>k.map(f=>q(a[f])).join(','))].join('\r\n')],{type:'text/csv'}),'applications.csv')};
 /* ---------- Settings / backup / nav ---------- */
 const mask=k=>k?k.slice(0,4)+'....'+k.slice(-4)+' saved':'No key saved yet';
-function fillSettings(){$('#ver').textContent='App version 4';const m=S.master,c=S.cfg;if(m){if(!c.name)c.name=norm(m.name);if(!c.phone)c.phone=String(m.phone||'').replace(/^[:\s]+/,'');if(!c.email)c.email=m.email||''}
+function fillSettings(){$('#ver').textContent='App version 5';const m=S.master,c=S.cfg;if(m){if(!c.name)c.name=norm(m.name);if(!c.phone)c.phone=String(m.phone||'').replace(/^[:\s]+/,'');if(!c.email)c.email=m.email||''}
  ['name','phone','email','linkedin'].forEach(k=>$('#s-'+k).value=c[k]||'');$('#fs').value=c.fileStyle||'under';$('#key').value='';$('#keyst').textContent=mask(c.key);$('#tg').value=c.tight;$('#st').value=c.stretch}
 $('#bset').onclick=e=>busy(e.target,async()=>{const k=$('#key').value.trim();S.cfg={...S.cfg,key:k||S.cfg.key,name:$('#s-name').value.trim(),phone:$('#s-phone').value.trim(),email:$('#s-email').value.trim(),linkedin:$('#s-linkedin').value.trim(),fileStyle:$('#fs').value,tight:+$('#tg').value||0,stretch:+$('#st').value||0};if(k)S.models=null;await save();fillSettings()});
 $('#btk').onclick=e=>busy(e.target,async()=>{const k=$('#key').value.trim();if(k){S.cfg.key=k;S.models=null;await save();fillSettings()}const m=await pickModels(true),r=await gem([{text:'Reply with exactly: OK'}],false);return`Key works. Best model: ${m.best}. Fallback: ${m.lite}. Gemini said: ${r.trim().slice(0,30)}`});
