@@ -45,7 +45,7 @@ let LOCK=0;const busy=async(b,f)=>{if(LOCK)return;LOCK=1;b.disabled=true;status(
 /* ---------- Gemini ---------- */
 const parseJSON=t=>JSON.parse(t.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim());
 const KEYH=()=>({'x-goog-api-key':S.cfg.key});
-async function http(url,opt={},ms=90000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);let r;try{r=await fetch(url,{...opt,signal:c.signal})}catch(e){clearTimeout(t);throw new Error(e.name==='AbortError'?`Timed out after ${ms/1000}s waiting for Gemini`:'Network error: '+(e.message||e))}clearTimeout(t);
+async function http(url,opt={},ms=90000,tag=''){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);let r;try{r=await fetch(url,{...opt,signal:c.signal})}catch(e){clearTimeout(t);const x=new Error((e.name==='AbortError'?`Timed out after ${ms/1000}s waiting for Gemini`:'Network error: '+(e.message||e))+(tag?` (${tag})`:'')+'. Check your connection and try again.');x.net=true;throw x}clearTimeout(t);
  const tx=await r.text();let j=null;try{j=JSON.parse(tx)}catch(e){}
  if(!r.ok){const e=new Error(`HTTP ${r.status}${j?.error?.status?' '+j.error.status:''}: ${j?.error?.message||tx.slice(0,300)||r.statusText}`);e.status=r.status;throw e}return j}
 async function pickModels(force){
@@ -58,13 +58,13 @@ async function pickModels(force){
  if(!best&&!lite)throw new Error('No Gemini Flash model is available for this key');
  S.models={t:Date.now(),best:best||lite,lite:lite||best};save();return S.models}
 async function gem(parts,json=true){
- const m=await pickModels(),tryM=[m.best];if(m.lite&&m.lite!==m.best)tryM.push(m.lite);let err;
+ const m=await pickModels(),body=JSON.stringify({contents:[{parts}],generationConfig:{temperature:.3,...(json?{responseMimeType:'application/json'}:{})}}),tryM=[m.best];if(m.lite&&m.lite!==m.best)tryM.push(m.lite);let err;
  for(const name of tryM){try{status('Asking '+name+'…','work');
-   const j=await http(`https://generativelanguage.googleapis.com/v1beta/models/${name}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json',...KEYH()},body:JSON.stringify({contents:[{parts}],generationConfig:{temperature:.3,...(json?{responseMimeType:'application/json'}:{})}})}),
+   const j=await http(`https://generativelanguage.googleapis.com/v1beta/models/${name}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json',...KEYH()},body},90000,name+', '+(body.length/1e6).toFixed(1)+' MB'),
    t=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
    if(!t.trim())throw new Error('Gemini returned no text ('+(j.promptFeedback?.blockReason||j.candidates?.[0]?.finishReason||'empty reply')+')');
    if(!json)return t;try{return parseJSON(t)}catch(e){throw new Error('Gemini reply was not valid JSON ('+e.message+'). Try again.')}}
-  catch(e){err=e;if(![429,404,503].includes(e.status)||name===tryM[tryM.length-1])throw e;S.models=null}}throw err}
+  catch(e){err=e;if(!(e.net||[429,404,503].includes(e.status))||name===tryM[tryM.length-1])throw e;S.models=null}}throw err}
 const b64=f=>new Promise(r=>{const x=new FileReader();x.onload=()=>r(x.result.split(',')[1]);x.readAsDataURL(f)});
 async function docxText(f){
  const u=new Uint8Array(await f.arrayBuffer()),dv=new DataView(u.buffer);let i=0;
@@ -99,7 +99,8 @@ ${jdText()}
 MASTER RESUME JSON:
 ${JSON.stringify(await withBudget(S.master))}`;
 const fitPrompt=()=>`Compare this resume with the job description. Return ONLY JSON: {"company":"company name from the JD","role":"job title from the JD","location":"city or Remote, from the JD","match":0-100,"verdict":"","matches":[],"gaps":[],"changes":["suggested resume changes"],"questions":["questions to ask the candidate"]}\n${jdText()}\n\nRESUME JSON:\n${JSON.stringify(S.master)}`;
-const imgParts=async()=>Promise.all([...$('#jdimg').files].map(async f=>({inlineData:{mimeType:f.type,data:await b64(f)}})));
+async function shrink(f){try{const bm=await createImageBitmap(f),k=Math.min(1,1600/Math.max(bm.width,bm.height)),c=document.createElement('canvas');c.width=Math.round(bm.width*k);c.height=Math.round(bm.height*k);c.getContext('2d').drawImage(bm,0,0,c.width,c.height);return{inlineData:{mimeType:'image/jpeg',data:c.toDataURL('image/jpeg',.8).split(',')[1]}}}catch(e){return{inlineData:{mimeType:f.type,data:await b64(f)}}}}
+const imgParts=()=>Promise.all([...$('#jdimg').files].map(shrink));
 function merge(m,r){const o=JSON.parse(JSON.stringify(m)),g=(i,j,k)=>r?.sections?.[i]?.entries?.[j]?.groups?.[k]?.bullets||[];
  o.sections.forEach((s,i)=>{(s.entries||[]).forEach((e,j)=>e.groups.forEach((gr,k)=>{const a=g(i,j,k);gr.bullets=gr.bullets.map((b,x)=>{const v=a[x],t=typeof v==='string'?v:v?.t;return t||b})}));
   if(s.type==='skills'){const a=r?.sections?.[i]?.rows||[];s.rows=s.rows.map((x,j)=>({label:x.label,text:a[j]?.text||x.text}))}});return o}
@@ -286,7 +287,7 @@ $('#ba').onclick=()=>{S.apps.unshift({co:'',role:'',link:'',contact:'',status:'A
 $('#bcsv').onclick=()=>{const k=['co','role','link','contact','status','date','next','notes'],q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';dl(new Blob([[['Company','Role','Link','Contact','Status','Applied','Next step','Notes'].map(q).join(','),...S.apps.map(a=>k.map(f=>q(a[f])).join(','))].join('\r\n')],{type:'text/csv'}),'applications.csv')};
 /* ---------- Settings / backup / nav ---------- */
 const mask=k=>k?k.slice(0,4)+'....'+k.slice(-4)+' saved':'No key saved yet';
-function fillSettings(){$('#ver').textContent='App version 5';const m=S.master,c=S.cfg;if(m){if(!c.name)c.name=norm(m.name);if(!c.phone)c.phone=String(m.phone||'').replace(/^[:\s]+/,'');if(!c.email)c.email=m.email||''}
+function fillSettings(){$('#ver').textContent='App version 6';const m=S.master,c=S.cfg;if(m){if(!c.name)c.name=norm(m.name);if(!c.phone)c.phone=String(m.phone||'').replace(/^[:\s]+/,'');if(!c.email)c.email=m.email||''}
  ['name','phone','email','linkedin'].forEach(k=>$('#s-'+k).value=c[k]||'');$('#fs').value=c.fileStyle||'under';$('#key').value='';$('#keyst').textContent=mask(c.key);$('#tg').value=c.tight;$('#st').value=c.stretch}
 $('#bset').onclick=e=>busy(e.target,async()=>{const k=$('#key').value.trim();S.cfg={...S.cfg,key:k||S.cfg.key,name:$('#s-name').value.trim(),phone:$('#s-phone').value.trim(),email:$('#s-email').value.trim(),linkedin:$('#s-linkedin').value.trim(),fileStyle:$('#fs').value,tight:+$('#tg').value||0,stretch:+$('#st').value||0};if(k)S.models=null;await save();fillSettings()});
 $('#btk').onclick=e=>busy(e.target,async()=>{const k=$('#key').value.trim();if(k){S.cfg.key=k;S.models=null;await save();fillSettings()}const m=await pickModels(true),r=await gem([{text:'Reply with exactly: OK'}],false);return`Key works. Best model: ${m.best}. Fallback: ${m.lite}. Gemini said: ${r.trim().slice(0,30)}`});
